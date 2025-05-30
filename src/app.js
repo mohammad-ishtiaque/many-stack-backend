@@ -1,7 +1,7 @@
 const express = require('express');
 const connectDB = require('./config/db');
 const app = express();
-// const authRoutes = require('./routes/auth.routes'); 
+const authRoutes = require('./routes/auth.router'); 
 // const userRoutes = require('./routes/user.routes');
 // const rvRoutes = require('./routes/rv.routes');
 // const membershipRoutes = require('./routes/membership.routes')
@@ -30,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 // console.log(`Total CPUs: ${totalCpus}`);
 
 // // Mount routes
-// app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRoutes);
 // app.use('/api/user', userRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);
