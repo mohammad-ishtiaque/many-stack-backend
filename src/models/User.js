@@ -55,6 +55,7 @@ const userSchema = new mongoose.Schema({
         startDate: Date,
         endDate: Date
     },
+    category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
