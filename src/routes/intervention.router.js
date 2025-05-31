@@ -12,6 +12,6 @@ router.delete('/delete/:id', auth, interventionController.deleteIntervention);
 
 
 
-router.delete('/:id/images', auth, interventionController.deleteImage);
-router.post('/:id/images', auth, upload.array('images'), interventionController.addImages);
+router.delete('/delete-image/:id', auth, interventionController.deleteImage);
+router.post('/add-image/:id', auth, upload.array('images'), interventionController.addImages);
 module.exports = router;
