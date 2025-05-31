@@ -4,6 +4,7 @@ const app = express();
 const authRoutes = require('./routes/auth.router'); 
 const userRoutes = require('./routes/user.router');
 const categoryRoutes = require('./routes/category.route');
+const supportRoutes = require('./routes/support.route');
 // const rvRoutes = require('./routes/rv.routes');
 // const membershipRoutes = require('./routes/membership.routes')
 // const insuranceRoutes = require('./routes/insurance.routes');
@@ -34,6 +35,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/category', categoryRoutes);
+app.use('/api/support', supportRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);
 // app.use('/api/insurance', insuranceRoutes);

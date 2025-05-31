@@ -13,18 +13,16 @@ const categorySchema = new mongoose.Schema({
         required: [true, 'Price is required'],
         min: [0, 'Price cannot be negative']
     },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    }
 }, {
     timestamps: true
 }); 
 
-// Add a pre-save hook to handle name formatting
-categorySchema.pre('save', function(next) {
-    // Ensure name is properly formatted
-    if (this.name) {
-        this.name = this.name.trim().toUpperCase();
-    }
-    next();
-});
+
 
 const Category = mongoose.model('Category', categorySchema);
 
