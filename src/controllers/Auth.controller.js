@@ -157,3 +157,13 @@ exports.resetPassword = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+exports.logout = async (req, res) => {
+  try {
+    res.clearCookie('token');
+    res.status(200).json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+}   

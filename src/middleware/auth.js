@@ -3,8 +3,8 @@ const jwt = require('jsonwebtoken');
 // General authentication middleware
 exports.auth = (req, res, next) => {
   // 1. Get token from header
-  const token = req.header('x-auth-token');
-  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) return res.status(401).json({ message: 'Access denied' });
 
   try {
     // 2. Verify token
