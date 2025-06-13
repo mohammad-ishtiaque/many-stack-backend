@@ -2,7 +2,6 @@ const Subscription = require('../../models/Dashboard/Subscription');
 
 exports.createSubscription = async (req, res) => {
     try {
-        console.log('Creating subscription with data:', req.body);
         const { name, price, validity, features } = req.body;
         
         // Create subscription
@@ -20,7 +19,6 @@ exports.createSubscription = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Subscription creation error:', error);
         return res.status(500).json({
             success: false,
             message: 'Error creating subscription',
