@@ -15,6 +15,7 @@ const subscriptionRoutes = require('./routes/Dashboard/subscription.router');
 // const maintenanceRoutes = require('./routes/maintenance.routes');
 // const repairRoutes = require('./routes/repair.routes');
 const dotenv = require('dotenv');
+const cors = require('cors');
 // const path = require('path');
 // const newExpenseRoutes = require('./routes/newExpense.routes');
 // const tripsRoutes = require('./routes/trips.routes');
@@ -27,6 +28,7 @@ dotenv.config();
 connectDB();
 
 // Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -43,7 +45,7 @@ app.use('/api/support', supportRoutes);
 app.use('/api/intervention', interventionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expense', expenseRoutes);
-app.use('/api/admin/subscription', subscriptionRoutes);
+app.use('/api/subscription', subscriptionRoutes);
 
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);

@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 
+
 // General authentication middleware
 exports.auth = (req, res, next) => {
   // 1. Get token from header
@@ -10,6 +11,7 @@ exports.auth = (req, res, next) => {
     // 2. Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded.user;
+    console.log('User authenticated:', req.user);
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });
@@ -17,22 +19,37 @@ exports.auth = (req, res, next) => {
 };
 
 // Admin-specific middleware
-exports.adminAuth = (roles = ['admin', 'superadmin']) => (req, res, next) => {
-  // 1. Check authentication
-  if (!req.user) return res.status(401).json({ message: 'Authorization denied' });
-  
-  // 2. Check admin role
-  if (!roles.includes(req.user.role)) {
-    return res.status(403).json({ message: 'Admin access required' });
-  }
-  
-  next();
+exports.adminAuth = async (req, res, next) => {
+    try {
+        // Check if user exists (from auth middleware)
+        if (!req.user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+
+        // Check if user is admin
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({
+                success: false,
+                message: 'Access denied. Admin rights required'
+            });
+        }
+
+        next();
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Admin authorization failed'
+        });
+    }
 };
 
 // Superadmin-specific middleware
-exports.superadminAuth = (req, res, next) => {
-  if (!req.user || req.user.role !== 'superadmin') {
-    return res.status(403).json({ message: 'Superadmin access required' });
-  }
-  next();
-};
+// exports.superadminAuth = (req, res, next) => {
+//   if (!req.user || req.user.role !== 'superadmin') {
+//     return res.status(403).json({ message: 'Superadmin access required' });
+//   }
+//   next();
+// };

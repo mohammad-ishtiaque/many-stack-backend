@@ -18,7 +18,6 @@ const subscriptionSchema = new mongoose.Schema({
     },
     features: {
         type: [String],
-        required: true,
         default: ['Access to all categories', 'Priority support', 'Exclusive content']
     },
     isActive: {

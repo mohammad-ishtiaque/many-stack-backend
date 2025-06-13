@@ -72,7 +72,7 @@ exports.login = async (req, res) => {
 
 // User registration
 exports.register = async (req, res) => {
-  const { firstName, lastName, email,contact, nSiren, address, gender, password } = req.body;
+  const { firstName, lastName, email,contact, nSiren, address, gender, password, role } = req.body;
 
   try {
     // 1. Check user exists
@@ -80,7 +80,7 @@ exports.register = async (req, res) => {
     if (user) return res.status(400).json({ message: 'User already exists' });
 
     // 2. Create user
-    user = new User({ firstName, lastName, email, contact, nSiren, address, gender, password });
+    user = new User({ firstName, lastName, email, contact, nSiren, address, gender, password, role });
 
     // 3. Hash password
     const salt = await bcrypt.genSalt(10);
