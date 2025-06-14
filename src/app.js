@@ -9,7 +9,8 @@ const interventionRoutes = require('./routes/intervention.router');
 const invoiceRoutes = require('./routes/invoice.router');
 const expenseRoutes = require('./routes/expenses.router');
 const subscriptionRoutes = require('./routes/Dashboard/subscription.router');
-const allcategoryRouter = require('./routes/Dashboard/allCategory.router');
+const allcategoryRoutes = require('./routes/Dashboard/allCategory.router');
+const settingsRoutes = require('./routes/Dashboard/settings.router');
 const path = require('path');
 // const rvRoutes = require('./routes/rv.routes');
 // const membershipRoutes = require('./routes/membership.routes')
@@ -48,7 +49,8 @@ app.use('/api/intervention', interventionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expense', expenseRoutes);
 app.use('/api/dashboard/subscription', subscriptionRoutes);
-app.use('/api/dashboard/allcategory', allcategoryRouter)
+app.use('/api/dashboard/allcategory', allcategoryRoutes);
+app.use('/api/dashboard/settings', settingsRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);
 // app.use('/api/insurance', insuranceRoutes);
