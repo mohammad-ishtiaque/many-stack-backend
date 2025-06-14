@@ -20,7 +20,7 @@ exports.auth = (req, res, next) => {
 // Admin-specific middleware
 exports.adminAuth = async (req, res, next) => {
     try {
-        // Check if user exists (from auth middleware)
+        // Check if user exists (from auth middleware)x
         if (!req.user) {
             return res.status(401).json({
                 success: false,
