@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { deleteFile } = require('../utils/unLinkFiles');
 
 // Get user profile using token
 exports.getUser = async (req, res) => {
@@ -184,3 +185,43 @@ exports.changePassword = async (req, res) => {
     }
 };
 
+exports.uploadBusinessLogo = async (req, res) => {
+    try {
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+
+        // Delete old logo if exists
+        if (user.businessLogo) {
+            await deleteFile(`uploads/${user.businessLogo}`);
+        }
+
+        // Update user with new logo
+        user.businessLogo = req.file.filename;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                businessLogo: user.businessLogo
+            },
+            message: 'Business logo uploaded successfully'
+        });
+    } catch (err) {
+        // Delete uploaded file if error occurs
+        if (req.file) {
+            await deleteFile(req.file.path);
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};

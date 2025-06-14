@@ -44,7 +44,11 @@ const userSchema = new mongoose.Schema({
     },
     profilePicture: {
         type: String,
-        default: 'uploads/profile-pictures/default.png'
+        default: null
+    },
+    businessLogo: {
+        type: String,
+        default: null
     },
     role: { type: String, enum: ['user', 'admin'], default: 'user' },
     isBlocked: { type: Boolean, default: false },

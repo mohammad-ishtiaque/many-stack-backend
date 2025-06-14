@@ -12,9 +12,9 @@ const deleteFile = async (filePath) => {
     // Check if file exists
     if (fs.existsSync(filePath)) {
       await unlink(filePath);
-      console.log('File deleted successfully:', filePath);
+      // console.log('File deleted successfully:', filePath);
     } else {
-      console.log('File does not exist:', filePath);
+      // console.log('File does not exist:', filePath);
     }
   } catch (error) {
     console.error('Error deleting file:', error);

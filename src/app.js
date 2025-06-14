@@ -10,6 +10,7 @@ const invoiceRoutes = require('./routes/invoice.router');
 const expenseRoutes = require('./routes/expenses.router');
 const subscriptionRoutes = require('./routes/Dashboard/subscription.router');
 const allcategoryRouter = require('./routes/Dashboard/allCategory.router');
+const path = require('path');
 // const rvRoutes = require('./routes/rv.routes');
 // const membershipRoutes = require('./routes/membership.routes')
 // const insuranceRoutes = require('./routes/insurance.routes');
@@ -37,7 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // const totalCpus = os.cpus().length;
 // console.log(`Total CPUs: ${totalCpus}`);
-
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
