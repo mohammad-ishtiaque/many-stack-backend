@@ -40,7 +40,7 @@ const userSchema = new mongoose.Schema({
     },
     gender: {
         type: String,
-        enum: ['Male', 'Female', 'Other']
+        enum: ['MALE', 'FEMALE', 'OTHER']
     },
     profilePicture: {
         type: String,
@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'admin', 'superadmin'], default: 'user' },
     isBlocked: { type: Boolean, default: false },
     resetCode: { type: String },
     resetCodeExpires: { type: Date },
