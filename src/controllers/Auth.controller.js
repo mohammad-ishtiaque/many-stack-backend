@@ -9,6 +9,47 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+
+    // 1. Check in Admin schema first
+    let admin = await Admin.findOne({ email });
+    
+    if (admin) {
+      // Admin login flow
+      const isMatch = await bcrypt.compare(password, admin.password);
+      if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+
+      const payload = {
+        user: {
+          id: admin.id,
+          role: admin.role
+        }
+      };
+
+      jwt.sign(
+        payload,
+        process.env.JWT_SECRET,
+        { expiresIn: '400h' },
+        (err, token) => {
+          if (err) throw err;
+          
+          // Update last login
+          admin.lastLogin = new Date();
+          admin.save();
+
+          res.json({
+            token,
+            user: {
+              id: admin.id,
+              name: admin.name,
+              email: admin.email,
+              role: admin.role,
+              permissions: admin.permissions
+            }
+          });
+        }
+      );
+      return;
+    }
     // 1. Check user exists
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });

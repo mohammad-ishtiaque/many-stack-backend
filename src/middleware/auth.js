@@ -48,7 +48,8 @@ exports.adminAuth = async (req, res, next) => {
 // Superadmin-specific middleware
 exports.superadminAuth = (req, res, next) => {
     
-  if (!req.user || req.user.role !== 'superadmin') {
+  if (!req.user || req.user.role !== 'SUPERADMIN') {
+    console.log('User role:', req.user ? req.user.role : 'No user');
     return res.status(403).json({ message: 'Superadmin access required' });
   }
 
