@@ -40,7 +40,7 @@ class EmailService {
     }
     // Send email method
     async sendEmail(to, template) {
-        console.log('Sending email to:', to);
+        // console.log('Sending email to:', to);
         try {
             const mailOptions = {
                 from: `"${process.env.EMAIL_FROM_NAME}" <${process.env.EMAIL_FROM_ADDRESS}>`,

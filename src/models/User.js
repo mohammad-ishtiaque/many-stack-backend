@@ -52,8 +52,22 @@ const userSchema = new mongoose.Schema({
     },
     role: { type: String, enum: ['user', 'admin', 'superadmin'], default: 'user' },
     isBlocked: { type: Boolean, default: false },
+    //forgeet password code
+
     resetCode: { type: String },
     resetCodeExpires: { type: Date },
+    
+    //email verification fields
+    isEmailVerified: {
+        type: Boolean,
+        default: false
+    },
+    verificationCode: {
+        type: String
+    },
+    verificationCodeExpires: {
+        type: Date
+    },
     subscription: {
         plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' },
         startDate: Date,

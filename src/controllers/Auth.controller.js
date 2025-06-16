@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Admin = require('../models/Admin');
 const emailService = require('../utils/emailService');
+const TempUser = require('../models/TempUser');
 
 // Unified login for users and admins
 exports.login = async (req, res) => {
@@ -12,7 +13,7 @@ exports.login = async (req, res) => {
 
     // 1. Check in Admin schema first
     let admin = await Admin.findOne({ email });
-    
+
     if (admin) {
       // Admin login flow
       const isMatch = await bcrypt.compare(password, admin.password);
@@ -31,7 +32,7 @@ exports.login = async (req, res) => {
         { expiresIn: '400h' },
         (err, token) => {
           if (err) throw err;
-          
+
           // Update last login
           admin.lastLogin = new Date();
           admin.save();
@@ -50,18 +51,32 @@ exports.login = async (req, res) => {
       );
       return;
     }
+    
     // 1. Check user exists
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    // 2. Check password
+    if (!user) return res.status(400).json({ message: 'User not exist!' });
+    // 2. Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'Please verify your email first',
+        isEmailVerified: false,
+        email: user.email 
+      });
+    }
+
+
+    
+
+    // 3. Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    // 3. Check if blocked
+    // 4. Check if blocked
     if (user.isBlocked) return res.status(403).json({ message: 'Account blocked' });
 
-    // 4. Generate JWT
+    // 5. Generate JWT
     const payload = {
       user: {
         id: user.id,
@@ -75,8 +90,8 @@ exports.login = async (req, res) => {
       { expiresIn: '400h' },
       (err, token) => {
         if (err) throw err;
-        
-        // 5. Add admin data if applicable
+
+        // 6. Add admin data if applicable
         if (user.role !== 'user') {
           Admin.findOne({ user: user.id })
             .then(admin => {
@@ -114,30 +129,149 @@ exports.login = async (req, res) => {
 
 // User registration
 exports.register = async (req, res) => {
-  const { firstName, lastName, email,contact, nSiren, address, gender, password, role } = req.body;
+  const { firstName, lastName, email, contact, nSiren, address, gender, password, role } = req.body;
 
   try {
-    // 1. Check user exists
-    let user = await User.findOne({ email });
-    if (user) return res.status(400).json({ message: 'User already exists' });
+    // Check if user already exists in main User collection
+    let existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
 
-    // 2. Create user
-    user = new User({ firstName, lastName, email, contact, nSiren, address, gender: gender?.toUpperCase(), password, role });
+    // Check if there's a pending verification
+    let tempUser = await TempUser.findOne({ email });
+    if (tempUser) {
+      await TempUser.findOneAndDelete({ email });
+    }
 
-    // 3. Hash password
+    // Hash password
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(password, salt);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // 4. Save user
-    await user.save();
-    res.status(201).json({ message: 'User registered successfully' });
+    // Generate verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // 5. Generate JWT (similar to login)
-    // ... (same JWT generation as login)
+    // Create temporary user
+    tempUser = new TempUser({
+      firstName,
+      lastName,
+      email,
+      contact,
+      nSiren,
+      address,
+      gender: gender?.toUpperCase(),
+      password: hashedPassword,
+      role,
+      verificationCode,
+      verificationCodeExpires: new Date(Date.now() + 15 * 60 * 1000)
+    });
+
+    await tempUser.save();
+
+    // Send verification email
+    try {
+      await emailService.sendOTP(
+        email,
+        verificationCode,
+        `${firstName} ${lastName}`
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Please verify your email to complete registration',
+        email: email
+      });
+    } catch (emailError) {
+      await TempUser.findOneAndDelete({ email });
+      throw new Error('Failed to send verification email');
+    }
+    
 
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server error');
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Server error'
+    });
+  }
+};
+
+// verify email
+exports.verifyEmail = async (req, res) => {
+  const { email, code } = req.body;
+  if (!code) {
+    return res.status(400).json({ success: false, message: 'Verification code is required' });
+  }
+  
+  try {
+    // Find temporary user
+    const tempUser = await TempUser.findOne({
+      email,
+      verificationCode: code,
+      verificationCodeExpires: { $gt: Date.now() }
+    });
+
+    if (!tempUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification code'
+      });
+    }
+
+    // Create actual user
+    const user = new User({
+      firstName: tempUser.firstName,
+      lastName: tempUser.lastName,
+      email: tempUser.email,
+      password: tempUser.password,
+      contact: tempUser.contact,
+      nSiren: tempUser.nSiren,
+      address: tempUser.address,
+      gender: tempUser.gender,
+      role: tempUser.role,
+      isEmailVerified: true
+    });
+
+    await user.save();
+
+    // Delete temporary user
+    await TempUser.findOneAndDelete({ email });
+
+    // Generate JWT token
+    const payload = {
+      user: {
+        id: user.id,
+        role: user.role
+      }
+    };
+
+    jwt.sign(
+      payload,
+      process.env.JWT_SECRET,
+      { expiresIn: '400h' },
+      (err, token) => {
+        if (err) throw err;
+        res.json({
+          success: true,
+          message: 'Registration completed successfully',
+          token,
+          user: {
+            id: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role
+          }
+        });
+      }
+    );
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
   }
 };
 
@@ -151,7 +285,7 @@ exports.forgotPassword = async (req, res) => {
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     // 2. Generate 4-digit verification code (as shown in UI)
-    const verificationCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     // 3. Save code to user with expiry (15 minutes)
     user.resetCode = verificationCode;
@@ -161,12 +295,12 @@ exports.forgotPassword = async (req, res) => {
     // 4. Send verification code via email
     try {
       await emailService.sendOTP(
-        email, 
-        verificationCode, 
+        email,
+        verificationCode,
         `${user.firstName} ${user.lastName}`
       );
 
-      res.json({ 
+      res.json({
         success: true,
         message: 'Verification code sent to your email'
       });
@@ -200,7 +334,7 @@ exports.verifyCode = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Code verified successfully',
       email: user.email // Send email back for the final step
@@ -231,15 +365,15 @@ exports.resetPassword = async (req, res) => {
     // 3. Hash new password
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(newPassword, salt);
-    
+
     // 4. Clear reset code fields
     user.resetCode = undefined;
-    user.resetCodeExpires = undefined; 
-    
+    user.resetCodeExpires = undefined;
+
     // 5. Save user
     await user.save();
 
-    res.json({ 
+    res.json({
       success: true,
       message: 'Password updated successfully'
     });
