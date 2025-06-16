@@ -55,3 +55,15 @@ exports.superadminAuth = (req, res, next) => {
 
   next();
 };
+
+
+exports.adminOrSuperadmin = (req, res, next) => {
+  // Assuming req.user is populated by the auth middleware
+  const role = req.user && req.user.role;
+  if (role === 'ADMIN' || role === 'SUPERADMIN') {
+    return next();
+  }
+  return res.status(403).json({ message: 'Access forbidden' });
+};
+
+
