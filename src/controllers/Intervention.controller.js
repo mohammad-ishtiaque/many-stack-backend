@@ -4,6 +4,7 @@ const { getLocationName } = require('../utils/geocoder');
 
 
 exports.createIntervention = async (req, res) => {
+
     try {
         const userId = req.user.id || req.user._id;
         const { category, price, note, status, latitude, longitude } = req.body;
@@ -33,7 +34,7 @@ exports.createIntervention = async (req, res) => {
             images,
             user: userId
         });
-
+        await intervention.populate('category');
         res.status(201).json({
             success: true,
             intervention
@@ -51,10 +52,55 @@ exports.createIntervention = async (req, res) => {
 exports.getAllInterventions = async (req, res) => {
     try {
         const userId = req.user.id || req.user._id;
-        const interventions = await Intervention.find({ user: userId });
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Get date filters from params or query
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+
+        // Build query object
+        let query = { user: userId };
+
+        // Add date range to query if dates are provided
+        if (fromDate || toDate) {
+            query.createdAt = {};
+            if (fromDate) {
+                fromDate.setHours(0, 0, 0, 0); // Start of day
+                query.createdAt.$gte = fromDate;
+            }
+            if (toDate) {
+                toDate.setHours(23, 59, 59, 999); // End of day
+                query.createdAt.$lte = toDate;
+            }
+        }
+
+        // Get total count with applied filters
+        const totalCount = await Intervention.countDocuments(query);
+
+        // Get filtered and paginated interventions
+        const interventions = await Intervention.find(query)
+            .populate('category')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+
         res.status(200).json({
             success: true,
-            interventions
+            interventions,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalItems: totalCount,
+                itemsPerPage: limit,
+                hasMore: totalCount > (skip + interventions.length),
+                dateFilter: {
+                    fromDate: fromDate?.toISOString(),
+                    toDate: toDate?.toISOString()
+                }
+            }
         });
     } catch (error) {
         res.status(500).json({
@@ -84,7 +130,7 @@ exports.updateIntervention = async (req, res) => {
     try {
         const { id } = req.params;
         const { category, price, note, status, latitude, longitude } = req.body;
-        
+
         const existingIntervention = await Intervention.findById(id);
         if (!existingIntervention) {
             return res.status(404).json({
@@ -143,8 +189,8 @@ exports.deleteIntervention = async (req, res) => {
 
         const userId = req.user.id || req.user._id;
         if (existingIntervention.user.toString() !== userId) {
-            return res.status(403).json({ 
-                message: 'Not authorized to delete this intervention' 
+            return res.status(403).json({
+                message: 'Not authorized to delete this intervention'
             });
         }
 
@@ -231,7 +277,7 @@ exports.addImages = async (req, res) => {
     try {
         const { id } = req.params;
         const { latitude, longitude } = req.body;
-        
+
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -259,7 +305,7 @@ exports.addImages = async (req, res) => {
             location: location,
             createdAt: new Date()
         }));
-        
+
         // Add new images to existing ones
         intervention.images = [...intervention.images, ...newImages];
         await intervention.save();

@@ -5,7 +5,7 @@ const { auth } = require('../middleware/auth');
 const upload = require('../utils/Upload');
 
 router.post('/create', auth, upload.array('images'), interventionController.createIntervention);
-router.get('/get-all', auth, interventionController.getAllInterventions);
+router.get('/get-all/', auth, interventionController.getAllInterventions);
 router.get('/get-by-id/:id', auth, interventionController.getInterventionById);
 router.put('/update/:id', auth, upload.array('images'), interventionController.updateIntervention);
 router.delete('/delete/:id', auth, interventionController.deleteIntervention);

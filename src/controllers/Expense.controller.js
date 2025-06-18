@@ -29,6 +29,8 @@ exports.createExpense = async (req, res) => {
             user: userId,
         });
 
+        await expense.populate('expenseCategory');
+
         res.status(201).json({
             success: true,
             message: 'Expense created successfully',
@@ -44,6 +46,7 @@ exports.createExpense = async (req, res) => {
 exports.getAllExpenses = async (req, res) => {
     try {
         const expenses = await Expense.find();
+        await expenses.populate('expenseCategory');
         res.status(200).json({
             success: true,
             expenses,
@@ -67,6 +70,8 @@ exports.getExpenseById = async (req, res) => {
                 message: 'Expense not found',
             });
         }
+
+        await expense.populate('expenseCategory');
         res.status(200).json({
             success: true,
             expense,
