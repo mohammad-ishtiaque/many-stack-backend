@@ -13,6 +13,7 @@ const allcategoryRoutes = require('./routes/Dashboard/allCategory.router');
 const settingsRoutes = require('./routes/Dashboard/settings.router');
 const makeAdminRoutes = require('./routes/Dashboard/makeAdmin.router');
 const userManagementRoutes = require('./routes/Dashboard/usermanagement.router');
+const homePageRoutes = require('./routes/homePage.router');
 const path = require('path');
 // const rvRoutes = require('./routes/rv.routes');
 // const membershipRoutes = require('./routes/membership.routes')
@@ -55,6 +56,7 @@ app.use('/api/dashboard/allcategory', allcategoryRoutes);
 app.use('/api/dashboard/settings', settingsRoutes);
 app.use('/api/dashboard', makeAdminRoutes);
 app.use('/api/dashboard', userManagementRoutes);
+app.use('/api/home', homePageRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);
 // app.use('/api/insurance', insuranceRoutes);
