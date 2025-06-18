@@ -12,6 +12,7 @@ exports.createInvoice = async (req, res) => {
             nSiren,
             address,
             services,
+            status,
             date,
             user
         } = req.body;
@@ -36,6 +37,7 @@ exports.createInvoice = async (req, res) => {
                 price: services.price
             },
             date: date || new Date(),
+            status: status.toUpperCase(),
             user: userId
         });
 

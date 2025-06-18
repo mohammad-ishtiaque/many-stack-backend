@@ -63,8 +63,8 @@ const invoiceSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Paid', 'Unpaid'],
-        default: 'Unpaid'
+        enum: ['PAID', 'UNPAID'],
+        default: 'UNPAID'
     },
     user: {
         type: mongoose.Schema.Types.ObjectId,

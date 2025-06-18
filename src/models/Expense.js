@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+
+const imageSchema = new mongoose.Schema({
+    url: { type: String },
+    location: { type: String },
+    createdAt: { type: Date, default: Date.now }
+});
+
 const expenseSchema = new mongoose.Schema({
 
     expenseName: {
@@ -17,9 +24,7 @@ const expenseSchema = new mongoose.Schema({
     note: {
         type: String,
     },
-    images: {
-        type: [String],
-    },
+    images: [imageSchema],
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

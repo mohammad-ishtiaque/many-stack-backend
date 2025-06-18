@@ -2,12 +2,22 @@ const Expense = require('../models/Expense');
 const { deleteFile } = require('../utils/unLinkFiles');
 
 exports.createExpense = async (req, res) => {
-
     try {
-        const { expenseName, expenseCategory, price, note } = req.body;
-        const images = req.files ? req.files.map(file => file.path) : [];
+        const { expenseName, expenseCategory, price, note, latitude, longitude } = req.body;
         const userId = req.user.id || req.user._id;
 
+        // Get location name once for all images
+        let location = 'Unknown Location';
+        if (latitude && longitude) {
+            location = await getLocationName(latitude, longitude);
+        }
+
+        // Process all images with the same location
+        const images = req.files ? req.files.map(file => ({
+            url: file.path,
+            location: location,
+            createdAt: new Date()
+        })) : [];
 
         const expense = await Expense.create({
             expenseName,
@@ -23,8 +33,6 @@ exports.createExpense = async (req, res) => {
             message: 'Expense created successfully',
             expense,
         });
-
-
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -32,7 +40,6 @@ exports.createExpense = async (req, res) => {
         });
     }
 };
-
 exports.getAllExpenses = async (req, res) => {
     try {
         const expenses = await Expense.find();
@@ -75,6 +82,7 @@ exports.getExpenseById = async (req, res) => {
 exports.updateExpense = async (req, res) => {
     try {
         const { id } = req.params;
+        const { expenseName, expenseCategory, price, note, latitude, longitude } = req.body;
 
         const existingExpense = await Expense.findById(id);
         if (!existingExpense) {
@@ -84,11 +92,19 @@ exports.updateExpense = async (req, res) => {
             });
         }
 
-        // Get new images if any were uploaded
-        const newImages = req.files ? req.files.map(file => file.path) : [];
+        // Get location name if new images are being added
+        let location = 'Unknown Location';
+        if (req.files && req.files.length > 0 && latitude && longitude) {
+            location = await getLocationName(latitude, longitude);
+        }
 
-        const { expenseName, expenseCategory, price, note } = req.body;
-        // Prepare update data
+        // Process new images with location
+        const newImages = req.files ? req.files.map(file => ({
+            url: file.path,
+            location: location,
+            createdAt: new Date()
+        })) : [];
+
         const updateData = {
             expenseName,
             expenseCategory,
