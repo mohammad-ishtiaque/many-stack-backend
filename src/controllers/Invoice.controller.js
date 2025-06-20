@@ -1,5 +1,5 @@
 const Invoice = require('../models/Invoice');
-
+const  singleDocToPDF  = require('../utils/downloadpdf');
 
 //create invoice
 
@@ -71,21 +71,20 @@ exports.getAllInvoices = async (req, res) => {
         let query = { user : userId };
 
         if (fromDate || toDate) {
-            query.date = {};
-            console.log(query.date);
+            query.createdAt = {};
             if (fromDate) {
                 fromDate.setHours(0, 0, 0, 0); // Set to start of the day
-                query.date.$gte = fromDate;
+                query.createdAt.$gte = fromDate;
             }
             if (toDate) {
                 toDate.setHours(23, 59, 59, 999); // Set to end of the day
-                query.date.$lte = toDate;
+                query.createdAt.$lte = toDate;
             }
         }
 
         // Search filter by catagory
         if (search) {
-            query.expenseCategory = { $regex: search, $options: 'i' };
+            query.invoiceCategory = { $regex: search, $options: 'i' };
         }
 
         const totalCount = await Invoice.countDocuments(query);
@@ -235,6 +234,35 @@ exports.deleteInvoice = async (req, res) => {
         res.status(200).json({
             success: true,
             message: 'Invoice deleted successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+
+exports.downloadSingleInvoicePDF = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const invoice = await Invoice.findById(id);
+
+        if (!invoice) {
+            return res.status(404).json({
+                success: false,
+                message: 'invoice not found'
+            });
+        }
+
+        singleDocToPDF({
+            docData: invoice,
+            fields: ['name', 'email', 'phone', 'nSiren', 'address', 'services', 'data', 'status'],
+            labels: ['Name', 'Email', 'Phone', 'nSiren', 'Address', 'Services', 'Date', 'Status'],
+            filename: `invoice_${id}.pdf`,
+            res,
+            title: 'invoice Details'
         });
     } catch (error) {
         res.status(500).json({

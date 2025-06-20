@@ -18,4 +18,7 @@ router.put('/update/:id', auth, invoiceController.updateInvoice);
 // // Delete invoice
 router.delete('/delete/:id', auth, invoiceController.deleteInvoice);
 
+// // Download invoice as PDF
+router.get('/download-pdf/:id', auth, invoiceController.downloadSingleInvoicePDF);
+
 module.exports = router; 

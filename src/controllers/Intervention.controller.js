@@ -67,14 +67,14 @@ exports.getAllInterventions = async (req, res) => {
 
         // Add date range to query if dates are provided
         if (fromDate || toDate) {
-            query.date = {};
+            query.createdAt = {};
             if (fromDate) {
                 fromDate.setHours(0, 0, 0, 0); // Start of day
-                query.date.$gte = fromDate;
+                query.createdAt.$gte = fromDate;
             }
             if (toDate) {
                 toDate.setHours(23, 59, 59, 999); // End of day
-                query.date.$lte = toDate;
+                query.createdAt.$lte = toDate;
             }
         }
 
@@ -353,6 +353,8 @@ exports.addImages = async (req, res) => {
         });
     }
 };
+
+
 
 
 

@@ -2,6 +2,8 @@ const Expense = require('../models/Expense');
 const { deleteFile } = require('../utils/unLinkFiles');
 const { getLocationName } = require('../utils/geocoder');
 
+const singleDocToPDF = require('../utils/downloadpdf');
+
 exports.createExpense = async (req, res) => {
     try {
         const { expenseName, expenseCategory, price, note, latitude, longitude } = req.body;
@@ -245,6 +247,32 @@ exports.deleteExpense = async (req, res) => {
 };
 
 
+exports.downloadSingleExpensePDF = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const expense = await Expense.findById(id);
 
+        if (!expense) {
+            return res.status(404).json({
+                success: false,
+                message: 'Expense not found'
+            });
+        }
+
+        singleDocToPDF({
+            docData: expense,
+            fields: ['expenseName', 'expenseCategory', 'price', 'note', 'createdAt'],
+            labels: ['Name', 'Category', 'Price', 'Note', 'Date'],
+            filename: `expense_${id}.pdf`,
+            res,
+            title: 'Expense Details'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
 
 
