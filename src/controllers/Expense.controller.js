@@ -43,13 +43,70 @@ exports.createExpense = async (req, res) => {
         });
     }
 };
+
+
 exports.getAllExpenses = async (req, res) => {
     try {
-        const expenses = await Expense.find();
-        await expenses.populate('expenseCategory');
+        const userId = req.user.id || req.user._id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const search = req.query.search || '';
+
+
+
+
+        const fromDate = req.query.from ? new Date(req.query.from) : new Date(0); // Default to epoch start
+        const toDate = req.query.to ? new Date(req.query.to) : new Date();
+
+        let query = { user : userId };
+
+        if (fromDate || toDate) {
+            query.createdAt = {};
+            if (fromDate) {
+                fromDate.setHours(0, 0, 0, 0); // Set to start of the day
+                query.createdAt.$gte = fromDate;
+            }
+            if (toDate) {
+                toDate.setHours(23, 59, 59, 999); // Set to end of the day
+                query.createdAt.$lte = toDate;
+            }
+        }
+
+        // Search filter by catagory
+        if (search) {
+            query.expenseCategory = { $regex: search, $options: 'i' };
+        }
+
+        // Get total count with applied filters
+        const totalCount = await Expense.countDocuments(query);
+        const ex = await Expense.find()
+        const totalExpense = ex.reduce((sum, exp) => sum + (exp.price || 0), 0);
+
+        // Get filtered and paginated expenses
+        const expenses = await Expense.find(query)
+            .populate('expenseCategory')
+            .sort({ createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec();
+
         res.status(200).json({
             success: true,
             expenses,
+            totalExpense,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalItems: totalCount,
+                itemsPerPage: limit,
+                hasMore: totalCount > (skip + expenses.length),
+                dateFilter: {
+                    fromDate: fromDate?.toISOString(),
+                    toDate: toDate?.toISOString()
+                }
+            }
+
         });
     } catch (error) {
         res.status(500).json({
