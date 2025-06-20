@@ -55,6 +55,8 @@ exports.getAllInterventions = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        const seaarch = req.query.search || '';
+
 
         // Get date filters from params or query
         const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
@@ -74,6 +76,12 @@ exports.getAllInterventions = async (req, res) => {
                 toDate.setHours(23, 59, 59, 999); // End of day
                 query.createdAt.$lte = toDate;
             }
+        }
+
+
+        // Search filter by category
+        if (seaarch) {
+            query.category = { $regex: seaarch, $options: 'i' };
         }
 
         // Get total count with applied filters
