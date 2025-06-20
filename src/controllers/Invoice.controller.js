@@ -91,7 +91,7 @@ exports.getAllInvoices = async (req, res) => {
         const totalCount = await Invoice.countDocuments(query);
 
         const invoices = await Invoice.find(query)
-            .populate('user', 'name email')
+            .populate('user', 'name email phone address nSiren ')
             .skip(skip)
             .limit(limit)
             .sort({ createdAt: -1 });
