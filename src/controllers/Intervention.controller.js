@@ -59,22 +59,22 @@ exports.getAllInterventions = async (req, res) => {
 
 
         // Get date filters from params or query
-        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : null;
-        const toDate = req.query.toDate ? new Date(req.query.toDate) : null;
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : new Date(0);
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : new Date();
 
         // Build query object
         let query = { user: userId };
 
         // Add date range to query if dates are provided
         if (fromDate || toDate) {
-            query.createdAt = {};
+            query.date = {};
             if (fromDate) {
                 fromDate.setHours(0, 0, 0, 0); // Start of day
-                query.createdAt.$gte = fromDate;
+                query.date.$gte = fromDate;
             }
             if (toDate) {
                 toDate.setHours(23, 59, 59, 999); // End of day
-                query.createdAt.$lte = toDate;
+                query.date.$lte = toDate;
             }
         }
 
@@ -94,6 +94,28 @@ exports.getAllInterventions = async (req, res) => {
             .skip(skip)
             .limit(limit)
             .exec();
+
+
+
+
+        if (interventions.length === 0) {
+            return res.status(200).json({
+                success: true,
+                interventions: [],
+                message: 'No interventions found for the given filters.',
+                pagination: {
+                    currentPage: page,
+                    totalPages: 0,
+                    totalItems: 0,
+                    itemsPerPage: limit,
+                    hasMore: false,
+                    dateFilter: {
+                        fromDate: fromDate?.toISOString(),
+                        toDate: toDate?.toISOString()
+                    }
+                }
+            });
+        }
 
         res.status(200).json({
             success: true,

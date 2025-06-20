@@ -54,18 +54,18 @@ exports.getAllExpenses = async (req, res) => {
         const search = req.query.search || '';
 
 
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : new Date(0);
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : new Date();
 
-
-        const fromDate = req.query.from ? new Date(req.query.from) : new Date(0); // Default to epoch start
-        const toDate = req.query.to ? new Date(req.query.to) : new Date();
-
-        let query = { user : userId };
+        // console.log(fromDate, toDate);
+        let query = { user: userId };
 
         if (fromDate || toDate) {
             query.createdAt = {};
             if (fromDate) {
                 fromDate.setHours(0, 0, 0, 0); // Set to start of the day
                 query.createdAt.$gte = fromDate;
+                // console.log(query.createdAt);
             }
             if (toDate) {
                 toDate.setHours(23, 59, 59, 999); // Set to end of the day
@@ -90,6 +90,26 @@ exports.getAllExpenses = async (req, res) => {
             .skip(skip)
             .limit(limit)
             .exec();
+
+
+        if (expenses.length === 0) {
+            return res.status(200).json({
+                success: true,
+                expenses: [],
+                message: 'No expenses found for the given filters.',
+                pagination: {
+                    currentPage: page,
+                    totalPages: 0,
+                    totalItems: 0,
+                    itemsPerPage: limit,
+                    hasMore: false,
+                    dateFilter: {
+                        fromDate: fromDate?.toISOString(),
+                        toDate: toDate?.toISOString()
+                    }
+                }
+            });
+        }
 
         res.status(200).json({
             success: true,

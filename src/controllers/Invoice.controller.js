@@ -53,20 +53,84 @@ exports.createInvoice = async (req, res) => {
     }
 };
 
-//get}allinvoices
-
-// exports.getAllInvoices=async(req,res)=>{
-
-// };
-
 // //get all invoices
 
 exports.getAllInvoices = async (req, res) => {
     try {
-        const invoices = await Invoice.find();
+
+        const userId = req.user.id || req.user._id;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+        const search = req.query.search || '';
+
+
+        const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : new Date(0);
+        const toDate = req.query.toDate ? new Date(req.query.toDate) : new Date();
+
+        let query = { user : userId };
+
+        if (fromDate || toDate) {
+            query.date = {};
+            console.log(query.date);
+            if (fromDate) {
+                fromDate.setHours(0, 0, 0, 0); // Set to start of the day
+                query.date.$gte = fromDate;
+            }
+            if (toDate) {
+                toDate.setHours(23, 59, 59, 999); // Set to end of the day
+                query.date.$lte = toDate;
+            }
+        }
+
+        // Search filter by catagory
+        if (search) {
+            query.expenseCategory = { $regex: search, $options: 'i' };
+        }
+
+        const totalCount = await Invoice.countDocuments(query);
+
+        const invoices = await Invoice.find(query)
+            .populate('user', 'name email')
+            .skip(skip)
+            .limit(limit)
+            .sort({ createdAt: -1 });
+
+            if (invoices.length === 0) {
+                return res.status(200).json({
+                    success: true,
+                    invoices: [],
+                    message: 'No invoices found for the given filters.',
+                    pagination: {
+                        currentPage: page,
+                        totalPages: 0,
+                        totalItems: 0,
+                        itemsPerPage: limit,
+                        hasMore: false,
+                        dateFilter: {
+                            fromDate: fromDate?.toISOString(),
+                            toDate: toDate?.toISOString()
+                        }
+                    }
+                });
+            }
+
+
+
         res.status(200).json({
             success: true,
-            invoices
+            invoices,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(totalCount / limit),
+                totalItems: totalCount,
+                itemsPerPage: limit,
+                hasMore: totalCount > (skip + invoices.length),
+                dateFilter: {
+                    fromDate: fromDate?.toISOString(),
+                    toDate: toDate?.toISOString()
+                }
+            }
         });
     } catch (error) {
         res.status(500).json({
