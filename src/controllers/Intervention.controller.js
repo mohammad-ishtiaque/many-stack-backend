@@ -1,7 +1,7 @@
 const Intervention = require('../models/Intervention');
 const { deleteFile } = require('../utils/unLinkFiles');
 const { getLocationName } = require('../utils/geocoder');
-
+const Category = require('../models/Category');
 
 exports.createIntervention = async (req, res) => {
 
@@ -55,7 +55,9 @@ exports.getAllInterventions = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
+        // console.log(req.query)
         const seaarch = req.query.search || '';
+        // console.log('Search query:', seaarch);
 
 
         // Get date filters from params or query
@@ -81,7 +83,11 @@ exports.getAllInterventions = async (req, res) => {
 
         // Search filter by category
         if (seaarch) {
-            query.category = { $regex: seaarch, $options: 'i' };
+            // Find matching categories by name
+            const categories = await Category.find({ name: { $regex: seaarch, $options: 'i' } }).select('_id');
+            console.log('Categories found:', categories);
+            const categoryIds = categories.map(cat => cat._id);
+            query.category = { $in: categoryIds };
         }
 
         // Get total count with applied filters
@@ -89,14 +95,11 @@ exports.getAllInterventions = async (req, res) => {
 
         // Get filtered and paginated interventions
         const interventions = await Intervention.find(query)
-            .populate('category')
+            .populate('category', 'name')
             .sort({ createdAt: -1 })
             .skip(skip)
             .limit(limit)
             .exec();
-
-
-
 
         if (interventions.length === 0) {
             return res.status(200).json({
@@ -143,7 +146,8 @@ exports.getAllInterventions = async (req, res) => {
 exports.getInterventionById = async (req, res) => {
     try {
         const { id } = req.params;
-        const intervention = await Intervention.findById(id);
+        const intervention = await Intervention.findById(id)
+        .populate('category', 'name');
         res.status(200).json({
             success: true,
             intervention
