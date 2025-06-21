@@ -148,6 +148,8 @@ exports.getInterventionById = async (req, res) => {
         const { id } = req.params;
         const intervention = await Intervention.findById(id)
         .populate('category', 'name');
+
+        console.log('Intervention found:', intervention);
         res.status(200).json({
             success: true,
             intervention
