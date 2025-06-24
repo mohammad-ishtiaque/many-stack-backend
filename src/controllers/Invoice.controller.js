@@ -19,6 +19,10 @@ exports.createInvoice = async (req, res) => {
 
         const userId = req.user.id || req.user._id;
 
+        if (!Array.isArray(services) || services.length === 0) {
+            return res.status(400).json({ success: false, message: 'Services must be a non-empty array.' });
+        }
+
         const invoice = await Invoice.create({
             name,
             email,
@@ -31,11 +35,7 @@ exports.createInvoice = async (req, res) => {
                 postalCode: address.postalCode,
                 country: address.country
             },
-            services: {
-                selectedService: services.selectedService,
-                quantity: services.quantity,
-                price: services.price
-            },
+            services,
             date: date || new Date(),
             status: status.toUpperCase(),
             user: userId

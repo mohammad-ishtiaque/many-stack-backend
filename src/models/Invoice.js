@@ -45,7 +45,7 @@ const invoiceSchema = new mongoose.Schema({
         }
     },
     //add services details
-    services: {
+    services: [{
         selectedService:{
             type: String,
             required: true
@@ -57,8 +57,8 @@ const invoiceSchema = new mongoose.Schema({
         price: {
             type: Number,
             required: true
-        }
-    },
+        } 
+    }],
     data: {
         type: Date,
         default: Date.now
