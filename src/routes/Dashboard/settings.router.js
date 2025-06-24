@@ -23,7 +23,7 @@ router.put('/privacy-policy/:id', auth, adminOrSuperadmin, updatePrivacyPolicy);
 
 router.post('/terms-conditions/create', auth, adminOrSuperadmin, createTermsConditions);
 router.get('/terms-conditions/get', auth, getTermsConditions);
-router.put('/terms-conditions/:id', auth, adminOrSuperadmin, updateTermsConditions);
+router.put('/terms-conditions/update/:id', auth, adminOrSuperadmin, updateTermsConditions);
 
 router.post('/contact-us/create', auth, adminOrSuperadmin, createContactUs);
 router.get('/contact-us/get', auth, getContactUs);

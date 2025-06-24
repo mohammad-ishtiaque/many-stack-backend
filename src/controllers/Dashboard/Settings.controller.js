@@ -9,18 +9,18 @@ exports.createPrivacyPolicy = async (req, res) => {
             content: req.body.content
         });
         await privacyPolicy.save();
-        res.status(201).json({ success: true, data: privacyPolicy });
+        res.status(201).json({ success: true,message: 'Privacy Policy created successfully', data: privacyPolicy });
     } catch (error) {
-        res.status(400).json({ success: false, error: error.message });
+        res.status(400).json({ success: false, message: 'Failed to create Privacy Policy', error: error.message });
     }
 };
 
 exports.getPrivacyPolicy = async (req, res) => {
     try {
         const privacyPolicy = await PrivacyPolicy.findOne({ isActive: true }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: privacyPolicy });
+        res.status(200).json({ success: true, message: 'Privacy Policy retrieved successfully', data: privacyPolicy });
     } catch (error) {
-        res.status(400).json({ success: false, error: error.message });
+        res.status(400).json({ success: false,message: 'Failed to retrieve Privacy Policy', error: error.message });
     }
 };
 
@@ -31,9 +31,9 @@ exports.updatePrivacyPolicy = async (req, res) => {
             { content: req.body.content },
             { new: true, runValidators: true }
         );
-        res.status(200).json({ success: true, data: privacyPolicy });
+        res.status(200).json({ success: true,message: 'Privacy Policy updated successfully', data: privacyPolicy });
     } catch (error) {
-        res.status(400).json({ success: false, error: error.message });
+        res.status(400).json({ success: false, message  : 'Failed to update Privacy Policy', error: error.message });
     }
 };
 
@@ -44,9 +44,9 @@ exports.createTermsConditions = async (req, res) => {
             content: req.body.content
         });
         await termsConditions.save();
-        res.status(201).json({ success: true, data: termsConditions });
+        res.status(201).json({ success: true, message: 'Terms & Conditions created successfully', data: termsConditions });
     } catch (error) {
-        res.status(400).json({ success: false, error: error.message });
+        res.status(400).json({ success: false, message: 'Failed to create Terms & Conditions', error: error.message });
     }
 };
 
@@ -66,9 +66,9 @@ exports.updateTermsConditions = async (req, res) => {
             { content: req.body.content },
             { new: true, runValidators: true }
         );
-        res.status(200).json({ success: true, data: termsConditions });
+        res.status(200).json({ success: true, message: 'Terms & Conditions updated successfully', data: termsConditions });
     } catch (error) {
-        res.status(400).json({ success: false, error: error.message });
+        res.status(400).json({ success: false,message: 'Failed to update Terms & Conditions', error: error.message });
     }
 };
 
