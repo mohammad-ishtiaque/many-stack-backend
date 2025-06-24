@@ -1,23 +1,23 @@
 const express = require('express');
 const subscriptionController = require('../../controllers/Dashboard/Subscription.controller');
-const { adminAuth, auth } = require('../../middleware/auth');
+const { adminOrSuperadmin, auth } = require('../../middleware/auth');
 
 const router = express.Router();
 
 
 // Create new subscription
-router.post('/create', auth, adminAuth, subscriptionController.createSubscription);    
+router.post('/create', auth, adminOrSuperadmin, subscriptionController.createSubscription);    
 
 // Get all subscriptions
-router.get('/get-all',auth, adminAuth, subscriptionController.getAllSubscriptions);
+router.get('/get-all',auth, adminOrSuperadmin, subscriptionController.getAllSubscriptions);
 
 // Get subscription by ID
-router.get('/get/:id',auth, adminAuth, subscriptionController.getSubscriptionById);
+router.get('/get/:id',auth, adminOrSuperadmin, subscriptionController.getSubscriptionById);
 
 // Update subscription
-router.put('/update/:id',auth, adminAuth, subscriptionController.updateSubscription);
+router.put('/update/:id',auth, adminOrSuperadmin, subscriptionController.updateSubscription);
 
 // Delete subscription
-router.delete('/delete/:id',auth, adminAuth, subscriptionController.deleteSubscription);
+router.delete('/delete/:id',auth, adminOrSuperadmin, subscriptionController.deleteSubscription);
 
 module.exports = router;

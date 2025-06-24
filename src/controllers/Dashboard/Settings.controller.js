@@ -75,11 +75,23 @@ exports.updateTermsConditions = async (req, res) => {
 // Contact Us Controllers
 exports.createContactUs = async (req, res) => {
     try {
+        const { email } = req.body;
+        console.log(email);
+        
+        // Check if email already exists
+        const existingContactUs = await ContactUs.findOne({ email });
+
+        if (existingContactUs) {
+            return res.status(400).json({ success: false, message: 'Email already exists' });
+        }
+
+        // Create new contact us entry
         const contactUs = new ContactUs({
-            content: req.body.content
+            email: email
         });
+        
         await contactUs.save();
-        res.status(201).json({ success: true, data: contactUs });
+        res.status(201).json({ success: true, message: 'Contact Us entry created successfully', data: contactUs });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }
@@ -88,7 +100,7 @@ exports.createContactUs = async (req, res) => {
 exports.getContactUs = async (req, res) => {
     try {
         const contactUs = await ContactUs.findOne({ isActive: true }).sort({ createdAt: -1 });
-        res.status(200).json({ success: true, data: contactUs });
+        res.status(200).json({ success: true, message: 'Contact Us entry retrieved successfully', data: contactUs });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }
@@ -101,7 +113,7 @@ exports.updateContactUs = async (req, res) => {
             { content: req.body.content },
             { new: true, runValidators: true }
         );
-        res.status(200).json({ success: true, data: contactUs });
+        res.status(200).json({ success: true,message: 'Contact Us entry updated successfully', data: contactUs });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
     }

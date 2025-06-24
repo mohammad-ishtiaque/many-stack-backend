@@ -80,6 +80,7 @@ exports.getAllAdmins = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Admins retrieved successfully',
             data: admins
         });
 
@@ -122,8 +123,6 @@ exports.deleteAdmin = async (req, res) => {
         });
     }
 };
-
-
 
 exports.createSuperAdmin = async (req, res) => {
     try {
@@ -175,7 +174,7 @@ exports.createSuperAdmin = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Admin created successfully',
+            message: 'Super Admin created successfully',
             data: {
                 admin: {
                     id: admin._id,

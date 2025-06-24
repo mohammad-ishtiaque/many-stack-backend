@@ -34,6 +34,7 @@ exports.getAllSubscriptions = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Subscriptions retrieved successfully',
             subscriptions
         });
 
@@ -58,6 +59,7 @@ exports.getSubscriptionById = async (req, res) => {
         }
         res.status(200).json({
             success: true,
+            message: 'Subscription retrieved successfully',
             subscription
         });
 
@@ -98,6 +100,7 @@ exports.updateSubscription = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Subscription updated successfully',
             subscription
         });
 

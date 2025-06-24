@@ -43,6 +43,7 @@ exports.createInvoice = async (req, res) => {
 
         res.status(201).json({
             success: true,
+            message: 'Invoice created successfully',
             invoice
         });
     } catch (error) {
@@ -118,6 +119,7 @@ exports.getAllInvoices = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Invoices retrieved successfully',
             invoices,
             pagination: {
                 currentPage: page,
@@ -153,6 +155,7 @@ exports.getInvoiceById = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Invoice retrieved successfully',
             invoice
         });
     } catch (error) {
@@ -209,6 +212,7 @@ exports.updateInvoice = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Invoice updated successfully',
             invoice
         });
     } catch (error) {

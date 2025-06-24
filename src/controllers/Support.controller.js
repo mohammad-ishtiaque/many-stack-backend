@@ -10,6 +10,7 @@ exports.createSupport = async (req, res) => {
 
         res.status(201).json({
             success: true,
+            message: 'Support created successfully',
             support
         });
     } catch (error) {
@@ -25,6 +26,7 @@ exports.getAllSupports = async (req, res) => {
         const supports = await Support.find();
         res.status(200).json({
             success: true,
+            message: 'Supports retrieved successfully',
             supports
         });
     } catch (error) {
@@ -41,6 +43,7 @@ exports.getSupportById = async (req, res) => {
         const support = await Support.findById(id);
         res.status(200).json({
             success: true,
+            message: 'Support retrieved successfully',
             support
         });
     } catch (error) {
@@ -61,6 +64,7 @@ exports.updateSupport = async (req, res) => {
 
         res.status(200).json({
             success: true,
+            message: 'Support updated successfully',
             support
         });
     } catch (error) {

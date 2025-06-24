@@ -2,14 +2,14 @@ const AllCategory = require('../../models/Dashboard/AllCategory');
 
 exports.createCategory = async (req, res) => {
     try {
-        const { categoryType, categoryName, price } = req.body;
-
+        const {  categoryType, categoryName, price } = req.body;
         // Validate required fields
         if (!categoryType || !categoryName) {
             return res.status(400).json({ message: 'Category type and name are required.' });
         }
 
         // Create new category
+        
         const newCategory = new AllCategory({
             categoryType,
             categoryName,

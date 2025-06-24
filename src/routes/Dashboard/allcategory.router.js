@@ -8,12 +8,12 @@ const {
     deleteCategory,
     getCategoryById
 } = require('../../controllers/Dashboard/AllCategory.controller');      
-const {auth, adminAuth } = require('../../middleware/auth');
+const {auth, adminOrSuperadmin } = require('../../middleware/auth');
 
-router.post('/create',auth, adminAuth, createCategory);
-router.get('/all',auth, adminAuth, getAllCategories);
-router.put('/update/:id',auth, adminAuth, updateCategory);
-router.delete('/delete/:id',auth, adminAuth, deleteCategory);
-router.get('/:id',auth, adminAuth, getCategoryById);
+router.post('/create',auth, adminOrSuperadmin, createCategory);
+router.get('/all',auth, adminOrSuperadmin, getAllCategories);
+router.put('/update/:id',auth, adminOrSuperadmin, updateCategory);
+router.delete('/delete/:id',auth, adminOrSuperadmin, deleteCategory);
+router.get('/:id',auth, adminOrSuperadmin, getCategoryById);
 
 module.exports = router;

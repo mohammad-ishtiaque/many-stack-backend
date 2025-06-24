@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
 const contactUsSchema = new mongoose.Schema({
-    content: {
-        type: String,
+    email: {
+        type: [String],
         required: true
     },
     isActive: {
