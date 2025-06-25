@@ -75,7 +75,7 @@ exports.createAdmin = async (req, res) => {
 
 exports.getAllAdmins = async (req, res) => {
     try {
-        const admins = await Admin.find({ role: 'ADMIN' && 'SUPERADMIN' })
+        const admins = await Admin.find({ role: 'ADMIN'  })
             .select('name email role');
 
         res.status(200).json({

@@ -76,7 +76,6 @@ exports.updateTermsConditions = async (req, res) => {
 exports.createContactUs = async (req, res) => {
     try {
         const { email } = req.body;
-        console.log(email);
         
         // Check if email already exists
         const existingContactUs = await ContactUs.findOne({ email });
