@@ -16,5 +16,7 @@ router.delete('/delete-image/:id', auth, interventionController.deleteImage);
 router.post('/add-image/:id', auth, upload.array('images'), interventionController.addImages);
 // // Download invoice as PDF
 router.get('/download-pdf/:id', auth, interventionController.downloadSingleInterventionPDF);
+router.put('/paid-unpaid/:id', auth, interventionController.paidUnpaid);
+
 
 module.exports = router;

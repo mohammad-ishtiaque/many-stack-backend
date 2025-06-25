@@ -392,6 +392,34 @@ exports.downloadSingleInterventionPDF = async (req, res) => {
 };
 
 
+exports.paidUnpaid = async (req, res) => {
+    try {
+        const interventionId = req.params.id;
+        
+        // Find the intervention
+        const intervention = await Intervention.findById(interventionId);
+        
+        if (!intervention) {
+            return res.status(404).json({ message: 'Intervention not found' });
+        }
+
+        // Toggle the status
+        intervention.status = intervention.status === 'PAID' ? 'UNPAID' : 'PAID';
+        
+        // Save the updated intervention
+        await intervention.save();
+        
+        res.status(200).json({ 
+            message: 'Status updated successfully',
+            intervention
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating status', error: error.message });
+    }
+}
+
+
+
 
 
 
