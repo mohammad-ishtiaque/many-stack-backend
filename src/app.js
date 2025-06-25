@@ -15,6 +15,7 @@ const makeAdminRoutes = require('./routes/Dashboard/makeAdmin.router');
 const userManagementRoutes = require('./routes/Dashboard/usermanagement.router');
 const homePageRoutes = require('./routes/homePage.router');
 const path = require('path');
+const expressLayouts = require('express-ejs-layouts');
 // const rvRoutes = require('./routes/rv.routes');
 // const membershipRoutes = require('./routes/membership.routes')
 // const insuranceRoutes = require('./routes/insurance.routes');
@@ -22,6 +23,7 @@ const path = require('path');
 // const repairRoutes = require('./routes/repair.routes');
 const dotenv = require('dotenv');
 const cors = require('cors');
+
 // const path = require('path');
 // const newExpenseRoutes = require('./routes/newExpense.routes');
 // const tripsRoutes = require('./routes/trips.routes');
@@ -37,12 +39,15 @@ connectDB();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(expressLayouts);
+app.set('view engine', 'ejs');
 
 // const os = require('os');
 
 // const totalCpus = os.cpus().length;
 // console.log(`Total CPUs: ${totalCpus}`);
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // // Mount routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);

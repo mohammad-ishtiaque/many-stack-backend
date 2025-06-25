@@ -1,6 +1,7 @@
 const Invoice = require('../models/Invoice');
-const  singleDocToPDF  = require('../utils/downloadpdf');
-
+const path = require('path');
+const fs = require('fs');
+const {generateInvoicePDF} = require('../utils/downloadpdf');
 //create invoice
 
 exports.createInvoice = async (req, res) => {
@@ -248,34 +249,62 @@ exports.deleteInvoice = async (req, res) => {
 };
 
 
-exports.downloadSingleInvoicePDF = async (req, res) => {
+
+
+// exports.createAndSaveInvoicePDF = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const invoice = await Invoice.findById(id)
+//         .populate('user', 'name email phone address nSiren businessLogo');
+
+
+//     if (!invoice) {
+//       return res.status(404).json({ success: false, message: 'Invoice not found' });
+//     }
+
+//     const pdfPath = path.join(__dirname, '../../docs', `invoice_${invoice._id}.pdf`);
+//     await generateInvoicePDF(invoice, pdfPath);
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Invoice PDF generated successfully',
+//       path: `docs/invoice_${invoice._id}.pdf`,
+//     });
+//   } catch (error) {
+//     res.status(500).json({ success: false, message: error.message });
+//   }
+// };
+
+// exports.downloadInvoicePDF = (req, res) => {
+//   const { id } = req.params;
+//   const filePath = path.join(__dirname, '../../docs', `invoice_${id}.pdf`);
+
+//   if (!fs.existsSync(filePath)) {
+//     return res.status(404).json({ success: false, message: 'Invoice PDF not found' });
+//   }
+
+//   res.setHeader('Content-Type', 'application/pdf');
+//   res.setHeader('Content-Disposition', `attachment; filename="invoice_${id}.pdf"`);
+//   fs.createReadStream(filePath).pipe(res);
+// };
+
+
+
+exports.downloadInvoice = async (req, res) => {
     try {
-        const { id } = req.params;
-        const invoice = await Invoice.findById(id);
-
-        if (!invoice) {
-            return res.status(404).json({
-                success: false,
-                message: 'invoice not found'
-            });
-        }
-
-        singleDocToPDF({
-            docData: invoice,
-            fields: ['name', 'email', 'phone', 'nSiren', 'address', 'services', 'data', 'status'],
-            labels: ['Name', 'Email', 'Phone', 'nSiren', 'Address', 'Services', 'Date', 'Status'],
-            filename: `invoice_${id}.pdf`,
-            res,
-            title: 'invoice Details'
-        });
+      const invoice = await Invoice.findById(req.params.id)
+        .populate('user', 'name email phone address nSiren businessLogo');
+    
+      if (!invoice) {
+        return res.status(404).json({ success: false, message: 'Invoice not found' });
+      }
+  
+      generateInvoicePDF(invoice, res); // 🔥 This will stream PDF directly to browser
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+      console.error('Invoice download error:', error.message);
+      res.status(500).json({ success: false, message: error.message });
     }
-};
-
+  };
 
 exports.paidUnpaid = async (req, res) => {
     try {
