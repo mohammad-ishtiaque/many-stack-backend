@@ -89,6 +89,60 @@ exports.generateInvoicePDF = (invoice, res) => {
 
 
 
+exports.generateInterventionPDF = (intervention, res) => {
+    const doc = new PDFDocument({ size: 'A4', margin: 50 });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=intervention_${intervention.interventionId}.pdf`);
+    doc.pipe(res);
+
+    // === Header ===
+    doc
+        .fontSize(22)
+        .font('Helvetica-Bold')
+        .text('INTERVENTION REPORT', { align: 'center' })
+        .moveDown(2);
+
+    // doc
+    //     .fontSize(14)
+    //     .font('Helvetica-Bold')
+    //     .text('Intervention Details', { underline: true })
+    //     .moveDown(0.5)
+
+
+    doc
+        .fontSize(14)
+        .font('Helvetica-Bold')
+        .text(`${intervention.interventionId}`, { bold: true })
+        .moveDown(1);
+
+    doc.moveDown(1);
+    // === Basic Details ===
+    doc
+        .font('Helvetica')
+        .fontSize(14)
+        .text(`Date`, { continued: true })
+        .text(`         : ${new Date(intervention.createdAt).toLocaleString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}`, { align: 'right' })
+        .moveDown(0.5)
+        .text(`Category`, { continued: true })
+        .text(`     : ${intervention.category?.name || 'N/A'}`, { align: 'right' })
+        .moveDown(0.5)
+        .text(`Price`, { continued: true })
+        .text(`       : ${intervention.price.toFixed(2)} $`, { align: 'right' })
+        .moveDown(0.5)
+        .text(`Note`, { continued: true })
+        .text(`        : ${intervention.note || '-'}`, { align: 'right' })
+        .moveDown(1);
+
+    // === Status Highlight ===
+    doc
+        .font('Helvetica-Bold')
+        .fontSize(14)
+        .fillColor(intervention.status === 'PAID' ? 'green' : 'red')
+        .text(`STATUS: ${intervention.status}`, { align: 'right' });
+
+    doc.end();
+};
 
 
 

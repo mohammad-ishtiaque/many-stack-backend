@@ -3,6 +3,7 @@ const { deleteFile } = require('../utils/unLinkFiles');
 const { getLocationName } = require('../utils/geocoder');
 const Category = require('../models/Category');
 const singleDocToPDF = require('../utils/downloadpdf');
+const generateInterventionPDF = require('../utils/downloadpdf');
 
 exports.createIntervention = async (req, res) => {
 
@@ -361,35 +362,21 @@ exports.addImages = async (req, res) => {
     }
 };
 
-exports.downloadSingleInterventionPDF = async (req, res) => {
+exports.downloadInterventionPDF = async (req, res) => {
     try {
-        const { id } = req.params;
-        const intervention = await Intervention.findById(id)
-            .populate('category', 'name');
-
-
-        if (!intervention) {
-            return res.status(404).json({
-                success: false,
-                message: 'intervention not found'
-            });
-        }
-
-        singleDocToPDF({
-            docData: intervention,
-            fields: ['interventionId', 'price', 'note', 'status', 'category.name', 'createdAt'],
-            labels: ['Id', 'Price', 'Note', 'Status', 'Category', 'Date', ],
-            filename: `intervention_${id}.pdf`,
-            res,
-            title: 'intervention Details'
-        });
+      const intervention = await Intervention.findById(req.params.id)
+        .populate('user', '_id name')           // Optional: populate user name
+        .populate('category', '_id name');      // Optional: populate category name
+  
+      if (!intervention) {
+        return res.status(404).json({ success: false, message: 'Intervention not found' });
+      }
+  
+      singleDocToPDF.generateInterventionPDF(intervention, res); // ✅ Directly streams PDF
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
+      res.status(500).json({ success: false, message: error.message });
     }
-};
+  };
 
 
 exports.paidUnpaid = async (req, res) => {
