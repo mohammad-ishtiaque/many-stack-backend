@@ -275,3 +275,31 @@ exports.downloadSingleInvoicePDF = async (req, res) => {
         });
     }
 };
+
+
+exports.paidUnpaid = async (req, res) => {
+    try {
+        const invoiceId = req.params.id;
+        
+        // Find the invoice
+        const invoice = await Invoice.findById(invoiceId);
+        
+        if (!invoice) {
+            return res.status(404).json({ message: 'invoice not found' });
+        }
+
+        // Toggle the status
+        invoice.status = invoice.status === 'PAID' ? 'UNPAID' : 'PAID';
+        
+        // Save the updated invoice
+        await invoice.save();
+        
+        res.status(200).json({ 
+            message: 'Status updated successfully',
+            invoice
+        });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating status', error: error.message });
+    }
+}
+
