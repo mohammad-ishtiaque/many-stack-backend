@@ -8,7 +8,6 @@ exports.getUser = async (req, res) => {
     try {
         // Get token from header
         const token = req.header('Authorization')?.replace('Bearer ', '');
-        // console.log(token)
         
         if (!token) {
             return res.status(401).json({
@@ -19,13 +18,12 @@ exports.getUser = async (req, res) => {
 
         // Verify token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        // console.log(decoded.user.id)
+        // console.log(decoded)
         
         // Get user from database
         let id = decoded.user.id;
+        // console.log(id)
         const user = await User.findById(id).select('-password');
-        // console.log(user)
-        
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -75,19 +73,21 @@ exports.updateUser = async (req, res) => {
                     firstName: req.body.firstName,
                     lastName: req.body.lastName,
                     contact: req.body.contact,
-                    siren: req.body.siren,
+                    nSiren: req.body.nSiren,
                     address: {
-                        streetNo: req.body.streetNo,
-                        streetName: req.body.streetName,
-                        city: req.body.city,
-                        postalCode: req.body.postalCode,
-                        country: req.body.country
+                        streetNo: req.body.address.streetNo,
+                        streetName: req.body.address.streetName,
+                        city: req.body.address.city,
+                        postalCode: req.body.address.postalCode,
+                        country: req.body.address.country
                     },
                     gender: req.body.gender
                 }
             },
             { new: true, runValidators: true }
         ).select('-password');
+
+        // console.log(req.body.address.streetNo);
 
         if (!user) {
             return res.status(404).json({

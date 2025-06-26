@@ -162,7 +162,13 @@ exports.register = async (req, res) => {
       email,
       contact,
       nSiren,
-      address,
+      address: {
+        streetNo: req.body.streetNo,
+        streetName: req.body.streetName,
+        city: req.body.city,
+        postalCode: req.body.postalCode,
+        country: req.body.country
+      },
       gender: gender?.toUpperCase(),
       password: hashedPassword,
       role,
