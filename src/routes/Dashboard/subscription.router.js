@@ -9,10 +9,10 @@ const router = express.Router();
 router.post('/create', auth, adminOrSuperadmin, subscriptionController.createSubscription);    
 
 // Get all subscriptions
-router.get('/get-all',auth, adminOrSuperadmin, subscriptionController.getAllSubscriptions);
+router.get('/get-all',auth, subscriptionController.getAllSubscriptions);
 
 // Get subscription by ID
-router.get('/get/:id',auth, adminOrSuperadmin, subscriptionController.getSubscriptionById);
+router.get('/get/:id',auth, subscriptionController.getSubscriptionById);
 
 // Update subscription
 router.put('/update/:id',auth, adminOrSuperadmin, subscriptionController.updateSubscription);
