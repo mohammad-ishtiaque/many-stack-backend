@@ -18,6 +18,12 @@ const adminSchema = new mongoose.Schema({
     type: String,
     enum: ['ADMIN', 'SUPERADMIN'],
     default: 'ADMIN'
+  },  
+  address: {
+    type: String,
+  },
+  contact: {
+    type: String,
   },
   permissions: {
     userManagement: Boolean,
