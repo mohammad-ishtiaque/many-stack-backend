@@ -1,8 +1,11 @@
+const jwt = require('jsonwebtoken');
 // User authentication middleware
+
 
 exports.auth = (req, res, next) => {
   // 1. Get token from header
   const token = req.headers.authorization?.split(' ')[1];
+
   if (!token) return res.status(401).json({ message: 'Access denied' });
 
   try {
@@ -24,9 +27,9 @@ exports.userAuth = (req, res, next) => {
   if (!token) return res.status(401).json({ message: 'Access denied' });
 
   try {
-    // 2. Verify token
+    // 2. Verify tokenAA
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.user;
+    req.user = decoded.user;A
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });
@@ -82,17 +85,18 @@ exports.adminOrSuperAdminAuth = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Access denied' });
 
+  const decoded = jwt.verify(token, process.env.JWT_SECRET);
   try {
     // 2. Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
     req.user = decoded.user;
-    if (req.user.role !== 'admin' && req.user.role !== 'SUPERADMIN') {
+    if (req.user.role !== 'ADMIN' && req.user.role !== 'SUPERADMIN') {
       return res.status(403).json({
         success: false,
         message: 'Access denied. Admin or Superadmin rights required'
       });
     }
-
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });

@@ -25,6 +25,9 @@ const adminSchema = new mongoose.Schema({
   contact: {
     type: String,
   },
+  image: {
+    type: String,
+  },
   permissions: {
     userManagement: Boolean,
     subscriptionManagement: Boolean,

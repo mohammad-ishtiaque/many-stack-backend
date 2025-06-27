@@ -3,35 +3,7 @@ const bcrypt = require('bcryptjs');
 const emailService = require('../../utils/emailService');
 const jwt = require('jsonwebtoken');
 
-exports.updateAdmin = async (req, res) => {
-    try {
-        const id = req.user.id;
-        
-        const admin = await Admin.findById(id);
-        if (!admin) {
-            return res.status(404).json({
-                success: false,
-                message: 'Admin not found'
-            });
-        }
-        admin.name = req.body.name;
-        // admin.email = req.body.email;
-        admin.contact = req.body.contact;
-        admin.address = req.body.address;
-        
-        await admin.save();
-        res.status(200).json({
-            success: true,
-            admin,
-            message: 'Admin updated successfully'
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false, 
-            message: error.message
-        });
-    }
-};
+
 
 
 exports.updatePassword = async (req, res) => {
@@ -81,50 +53,50 @@ exports.updatePassword = async (req, res) => {
 };
 
 
-exports.adminLogin = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: 'Please provide all required fields'
-            });
-        }
-        const admin = await Admin.findOne({ email });
-        if (!admin) {
-            return res.status(404).json({
-                success: false,
-                message: 'Admin not found'
-            });
-        }
-        const isMatch = await bcrypt.compare(password, admin.password);
-        if (!isMatch) {
-            return res.status(400).json({
-                success: false,
-                message: 'Password is incorrect'
-            });
-        }
-        const token = jwt.sign({ user: admin }, process.env.JWT_SECRET, { expiresIn: '400h' });
-        res.status(200).json({
-            success: true,
-            token,
-            admin,
-            user: {
-                id: admin.id,
-                name: admin.name,
-                email: admin.email,
-                role: admin.role,
-                permissions: admin.permissions
-            },
-            message: 'Login successful'
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false, 
-            message: error.message
-        });
-    }
-};
+// exports.adminLogin = async (req, res) => {
+//     try {
+//         const { email, password } = req.body;
+//         if (!email || !password) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Please provide all required fields'
+//             });
+//         }
+//         const admin = await Admin.findOne({ email });
+//         if (!admin) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'Admin not found'
+//             });
+//         }
+//         const isMatch = await bcrypt.compare(password, admin.password);
+//         if (!isMatch) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Password is incorrect'
+//             });
+//         }
+//         const token = jwt.sign({ user: admin }, process.env.JWT_SECRET, { expiresIn: '400h' });
+//         res.status(200).json({
+//             success: true,
+//             token,
+//             admin,
+//             user: {
+//                 id: admin.id,
+//                 name: admin.name,
+//                 email: admin.email,
+//                 role: admin.role,
+//                 permissions: admin.permissions
+//             },
+//             message: 'Login successful'
+//         });
+//     } catch (error) {
+//         res.status(500).json({
+//             success: false, 
+//             message: error.message
+//         });
+//     }
+// };
 
 
 exports.resetAdminPassword = async (req, res) => {
@@ -274,5 +246,50 @@ exports.adminResendCode = async (req, res) => {
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ message: 'Server error' });
+    }
+};
+
+exports.updateAdmin = async (req, res) => {
+    try {
+        const id = req.user.id;
+        
+        // Prepare update data
+        const updateData = {
+            name: req.body.name,
+            contact: req.body.contact,
+            address: req.body.address
+        };
+
+        // If there's an uploaded file, add it to the update data
+        if (req.file) {
+            updateData.image = req.file.path.replace(/\\/g, '/').replace('public', '');
+        }
+
+        // Find and update the admin
+        const admin = await Admin.findByIdAndUpdate(
+            id,
+            { $set: updateData },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin not found'
+            });
+        }
+
+
+        res.status(200).json({
+            success: true,
+            data: admin,
+            message: 'Profile updated successfully'
+        });
+    } catch (error) {
+        console.error('Error updating admin:', error);
+        res.status(500).json({
+            success: false, 
+            message: error.message || 'Server error while updating admin profile'
+        });
     }
 };
