@@ -225,3 +225,87 @@ exports.uploadBusinessLogo = async (req, res) => {
         });
     }
 };
+
+exports.uploadProfilePicture = async (req, res) => {
+    try {
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+
+        // Delete old logo if exists
+        if (user.profilePicture) {
+            await deleteFile(`uploads/${user.profilePicture}`);
+        }
+
+        // Update user with new logo
+        user.profilePicture = req.file.filename;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                profilePicture: user.profilePicture
+            },
+            message: 'Profile picture uploaded successfully'
+        });
+    } catch (err) {
+        // Delete uploaded file if error occurs
+        if (req.file) {
+            await deleteFile(req.file.path);
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+
+exports.updateProfilePicture = async (req, res) => {
+    try {
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                message: 'No file uploaded'
+            });
+        }
+
+        const user = await User.findById(req.user.id);
+
+        // Delete old logo if exists
+        if (user.profilePicture) {
+            await deleteFile(`uploads/${user.profilePicture}`);
+        }
+
+        // Update user with new logo
+        user.profilePicture = req.file.filename;
+        await user.save();
+
+        res.status(200).json({
+            success: true,
+            data: {
+                profilePicture: user.profilePicture
+            },
+            message: 'Profile picture updated successfully'
+        });
+    } catch (err) {
+        // Delete uploaded file if error occurs
+        if (req.file) {
+            await deleteFile(req.file.path);
+        }
+        
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
