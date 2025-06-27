@@ -32,6 +32,8 @@ const adminSchema = new mongoose.Schema({
     adminManagement: Boolean,
     settingsManagement: Boolean
   },
+  resetCode: { type: String },
+  resetCodeExpires: { type: Date },
   lastLogin: Date,
   activityLog: [{
     action: String,

@@ -15,19 +15,19 @@ const {
 } = require('../../controllers/Dashboard/Settings.controller');
 
 
-const {auth, adminOrSuperadmin} = require('../../middleware/auth')
+const {adminOrSuperAdminAuth} = require('../../middleware/auth')
 
-router.post('/privacy-policy/create', auth, adminOrSuperadmin, createPrivacyPolicy);
-router.get('/privacy-policy/get', auth, getPrivacyPolicy);
-router.put('/privacy-policy/:id', auth, adminOrSuperadmin, updatePrivacyPolicy);
+router.post('/privacy-policy/create',  adminOrSuperAdminAuth, createPrivacyPolicy);
+router.get('/privacy-policy/get',  getPrivacyPolicy);
+router.put('/privacy-policy/:id',  adminOrSuperAdminAuth, updatePrivacyPolicy);
 
-router.post('/terms-conditions/create', auth, adminOrSuperadmin, createTermsConditions);
-router.get('/terms-conditions/get', auth, getTermsConditions);
-router.put('/terms-conditions/update/:id', auth, adminOrSuperadmin, updateTermsConditions);
+router.post('/terms-conditions/create',  adminOrSuperAdminAuth, createTermsConditions);
+router.get('/terms-conditions/get',  getTermsConditions);
+router.put('/terms-conditions/update/:id',  adminOrSuperAdminAuth, updateTermsConditions);
 
-router.post('/contact-us/create', auth, adminOrSuperadmin, createContactUs);
-router.get('/contact-us/get', auth, getContactUs);
-router.put('/contact-us/update/:id', auth, adminOrSuperadmin, updateContactUs);
-router.delete('/contact-us/delete/:id', auth, adminOrSuperadmin, deleteContactUs);
+router.post('/contact-us/create',  adminOrSuperAdminAuth, createContactUs);
+router.get('/contact-us/get',  getContactUs);
+router.put('/contact-us/update/:id',  adminOrSuperAdminAuth, updateContactUs);
+router.delete('/contact-us/delete/:id',  adminOrSuperAdminAuth, deleteContactUs);
 
 module.exports = router;

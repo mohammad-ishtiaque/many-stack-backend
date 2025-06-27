@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { createSupport, getAllSupports, getSupportById, updateSupport, deleteSupport } = require('../controllers/Support.controller');
-const { auth } = require('../middleware/auth');
+const { userAuth } = require('../middleware/auth');
 
-router.post('/create', auth, createSupport);
-router.get('/get-all', auth, getAllSupports);
-router.get('/get-one/:id', auth, getSupportById);
-router.put('/update/:id', auth, updateSupport);
-router.delete('/delete/:id', auth, deleteSupport);
+router.post('/create', userAuth, createSupport);
+router.get('/get-all', userAuth, getAllSupports);
+router.get('/get-one/:id', userAuth, getSupportById);
+router.put('/update/:id', userAuth, updateSupport);
+router.delete('/delete/:id', userAuth, deleteSupport);
 
 module.exports = router;
 
