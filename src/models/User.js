@@ -71,6 +71,7 @@ const userSchema = new mongoose.Schema({
     subscription: {
         plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' },
         startDate: Date,
+        isActive: { type: Boolean, default: false },
         endDate: Date
     },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },

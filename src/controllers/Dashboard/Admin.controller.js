@@ -7,7 +7,7 @@ const jwt = require('jsonwebtoken');
 
 
 exports.updatePassword = async (req, res) => {
-    try {   
+    try {
         const id = req.user.id;
         const admin = await Admin.findById(id);
         if (!admin) {
@@ -46,7 +46,7 @@ exports.updatePassword = async (req, res) => {
         });
     } catch (error) {
         res.status(500).json({
-            success: false, 
+            success: false,
             message: error.message
         });
     }
@@ -101,7 +101,7 @@ exports.updatePassword = async (req, res) => {
 
 exports.resetAdminPassword = async (req, res) => {
     const { email, newPassword, confirmPassword } = req.body;
-    
+
     try {
         // 1. Validate password match
         if (newPassword !== confirmPassword) {
@@ -140,7 +140,7 @@ exports.resetAdminPassword = async (req, res) => {
 exports.adminForgetPassword = async (req, res) => {
     try {
         const { email } = req.body;
-        
+
         // 1. Find admin
         const admin = await Admin.findOne({ email });
         if (!admin) {
@@ -208,7 +208,7 @@ exports.adminVerifyCode = async (req, res) => {
 exports.adminResendCode = async (req, res) => {
     try {
         const { email } = req.body;
-        
+
         // 1. Find admin
         const admin = await Admin.findOne({ email });
         if (!admin) {
@@ -252,7 +252,7 @@ exports.adminResendCode = async (req, res) => {
 exports.updateAdmin = async (req, res) => {
     try {
         const id = req.user.id;
-        
+
         // Prepare update data
         const updateData = {
             name: req.body.name,
@@ -288,8 +288,46 @@ exports.updateAdmin = async (req, res) => {
     } catch (error) {
         console.error('Error updating admin:', error);
         res.status(500).json({
-            success: false, 
+            success: false,
             message: error.message || 'Server error while updating admin profile'
+        });
+    }
+};
+
+exports.getAdminProfile = async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                message: 'No token provided'
+            });
+        }
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const id = decoded.user._id || decoded.user.id;
+        if (!id) {
+            return res.status(401).json({
+                success: false,
+                message: 'Invalid token'
+            });
+        }
+
+        const admin = await Admin.findById(id).select('-password');
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: 'Admin not found'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            data: admin
+        });
+    } catch (error) {
+        console.error('Error fetching admin profile:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Server error while fetching admin profile'
         });
     }
 };
