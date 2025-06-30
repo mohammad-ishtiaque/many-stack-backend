@@ -8,17 +8,17 @@ exports.createCategory = async (req, res) => {
         const userId = req.user.id || req.user._id;
 
         // Check if category already exists
-        const existingCategory = await Category.findOne({ 
-            name: name.trim(),
-            user: userId
-        });
+        // const existingCategory = await Category.findOne({ 
+        //     name: name.trim(),
+        //     user: userId
+        // });
         
-        if (existingCategory) {
-            return res.status(400).json({
-                success: false,
-                message: 'You already have a category with this name'
-            });
-        }
+        // if (existingCategory) {
+        //     return res.status(400).json({
+        //         success: false,
+        //         message: 'You already have a category with this name'
+        //     });
+        // }
 
         // Validate price
         if (price < 0) {

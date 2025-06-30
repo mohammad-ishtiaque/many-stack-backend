@@ -1,4 +1,5 @@
 const Subscription = require('../../models/Dashboard/Subscription');
+const { getStripePrice } = require('../../config/stripe');
 
 exports.createSubscription = async (req, res) => {
     try {
@@ -8,7 +9,7 @@ exports.createSubscription = async (req, res) => {
         const subscription = await Subscription.create({
             name: name.trim(),
             price,
-            validity,
+            validity : validity.toUpperCase(), // Ensure validity is stored in uppercase
             features: features || []
         });
 
@@ -46,6 +47,46 @@ exports.getAllSubscriptions = async (req, res) => {
     }
 }
 
+// New endpoint for getting subscriptions with Stripe price information
+exports.getAllSubscriptionsWithStripe = async (req, res) => {
+    try {
+        const subscriptions = await Subscription.find({ isActive: true });
+
+        // Add Stripe price information to each subscription
+        const subscriptionsWithStripe = await Promise.all(
+            subscriptions.map(async (subscription) => {
+                try {
+                    const stripePrice = await getStripePrice(subscription);
+                    return {
+                        ...subscription.toObject(),
+                        stripePriceId: stripePrice.id
+                    };
+                } catch (error) {
+                    console.error(`Error getting Stripe price for subscription ${subscription._id}:`, error);
+                    // Return subscription without Stripe info if there's an error
+                    return {
+                        ...subscription.toObject(),
+                        stripePriceId: null,
+                        stripeError: error.message
+                    };
+                }
+            })
+        );
+
+        res.status(200).json({
+            success: true,
+            message: 'Subscriptions with Stripe information retrieved successfully',
+            subscriptions: subscriptionsWithStripe
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
+
 exports.getSubscriptionById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -71,6 +112,53 @@ exports.getSubscriptionById = async (req, res) => {
     }   
 }
 
+// New endpoint for getting subscription by ID with Stripe price information
+exports.getSubscriptionByIdWithStripe = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const subscription = await Subscription.findById(id);
+        if (!subscription) {
+            return res.status(404).json({
+                success: false,
+                message: 'Subscription not found'
+            });
+        }
+
+        // Add Stripe price information
+        try {
+            const stripePrice = await getStripePrice(subscription);
+            const subscriptionWithStripe = {
+                ...subscription.toObject(),
+                stripePriceId: stripePrice.id
+            };
+
+            res.status(200).json({
+                success: true,
+                message: 'Subscription with Stripe information retrieved successfully',
+                subscription: subscriptionWithStripe
+            });
+        } catch (error) {
+            console.error('Error getting Stripe price:', error);
+            res.status(200).json({
+                success: true,
+                message: 'Subscription retrieved successfully (Stripe price unavailable)',
+                subscription: {
+                    ...subscription.toObject(),
+                    stripePriceId: null,
+                    stripeError: error.message
+                }
+            });
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }   
+}
+
 exports.updateSubscription = async (req, res) => {
     try {
         const { id } = req.params;
@@ -82,7 +170,7 @@ exports.updateSubscription = async (req, res) => {
             { 
                 name: name ? name.trim() : undefined,
                 price,
-                validity,
+                validity : validity ? validity.toUpperCase() : undefined, // Ensure validity is stored in uppercase
                 features
             }, 
             { 
@@ -138,3 +226,4 @@ exports.deleteSubscription = async (req, res) => {
         });
     }
 };
+

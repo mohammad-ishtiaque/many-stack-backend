@@ -1,7 +1,7 @@
 const express = require('express');
 const connectDB = require('./config/db');
 const app = express();
-const authRoutes = require('./routes/auth.router'); 
+const authRoutes = require('./routes/auth.router');
 const userRoutes = require('./routes/user.router');
 const categoryRoutes = require('./routes/category.router');
 const supportRoutes = require('./routes/support.router');
@@ -9,6 +9,7 @@ const interventionRoutes = require('./routes/intervention.router');
 const invoiceRoutes = require('./routes/invoice.router');
 const expenseRoutes = require('./routes/expenses.router');
 const subscriptionRoutes = require('./routes/Dashboard/subscription.router');
+
 const allcategoryRoutes = require('./routes/Dashboard/allcategory.router');
 const settingsRoutes = require('./routes/Dashboard/settings.router');
 const makeAdminRoutes = require('./routes/Dashboard/makeAdmin.router');
@@ -25,7 +26,7 @@ const expressLayouts = require('express-ejs-layouts');
 // const repairRoutes = require('./routes/repair.routes');
 const dotenv = require('dotenv');
 const cors = require('cors');
-
+const stripeRoutes = require('./routes/stripe.router');
 // const path = require('path');
 // const newExpenseRoutes = require('./routes/newExpense.routes');
 // const tripsRoutes = require('./routes/trips.routes');
@@ -39,11 +40,32 @@ connectDB();
 
 // Middleware
 app.use(cors());
+
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
+
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(expressLayouts);
 app.set('view engine', 'ejs');
 
+
+app.set("views", path.join(__dirname, "views"));
+app.set("view engine", "ejs");
+
+
+
+app.get('/success', async (req, res) => {
+    // const session = await stripe.checkout.sessions.retrieve(req.query.session_id, { expand: ['subscription', 'subscription.plan.product'] });
+    // console.log(JSON.stringify(session));
+
+    res.send('Payment successful! Thank you for subscribing.');
+});
+
+app.get('/cancel', (req, res) => {
+    res.redirect('/');
+});
 // const os = require('os');
 
 // const totalCpus = os.cpus().length;
@@ -59,12 +81,15 @@ app.use('/api/intervention', interventionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expense', expenseRoutes);
 app.use('/api/dashboard/subscription', subscriptionRoutes);
+
 app.use('/api/dashboard/allcategory', allcategoryRoutes);
 app.use('/api/dashboard/settings', settingsRoutes);
 app.use('/api/dashboard', makeAdminRoutes);
 app.use('/api/dashboard', userManagementRoutes);
 app.use('/api/dashboard/adminprofile', adminProfileRoutes);
 app.use('/api/home', homePageRoutes);
+app.use('/api/stripe', stripeRoutes);
+
 // app.use('/api/dashboard', dashboardHomeRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);

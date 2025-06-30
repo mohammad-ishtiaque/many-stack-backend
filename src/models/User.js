@@ -68,6 +68,11 @@ const userSchema = new mongoose.Schema({
     verificationCodeExpires: {
         type: Date
     },
+    // Stripe customer ID
+    stripeCustomerId: {
+        type: String,
+        default: null
+    },
     subscription: {
         plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' },
         startDate: Date,

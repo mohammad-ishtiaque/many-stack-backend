@@ -11,8 +11,14 @@ router.post('/create',  adminOrSuperAdminAuth, subscriptionController.createSubs
 // Get all subscriptions
 router.get('/get-all', subscriptionController.getAllSubscriptions);
 
+// Get all subscriptions with Stripe price information
+router.get('/get-all-with-stripe', subscriptionController.getAllSubscriptionsWithStripe);
+
 // Get subscription by ID
 router.get('/get/:id', subscriptionController.getSubscriptionById);
+
+// Get subscription by ID with Stripe price information
+router.get('/get-with-stripe/:id', subscriptionController.getSubscriptionByIdWithStripe);
 
 // Update subscription
 router.put('/update/:id', adminOrSuperAdminAuth, subscriptionController.updateSubscription);

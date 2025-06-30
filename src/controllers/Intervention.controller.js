@@ -9,7 +9,7 @@ exports.createIntervention = async (req, res) => {
 
     try {
         const userId = req.user.id || req.user._id;
-        const { category, price, note, status, latitude, longitude } = req.body;
+        const {interventionId, category, price, note, status, latitude, longitude } = req.body;
 
         // Get location name once for all images
         let location = 'Unknown Location';
@@ -29,6 +29,7 @@ exports.createIntervention = async (req, res) => {
         const images = await Promise.all(imagePromises);
 
         const intervention = await Intervention.create({
+            interventionId,
             category,
             price,
             note,
@@ -87,7 +88,7 @@ exports.getAllInterventions = async (req, res) => {
         if (seaarch) {
             // Find matching categories by name
             const categories = await Category.find({ name: { $regex: seaarch, $options: 'i' } }).select('_id');
-            console.log('Categories found:', categories);
+            // console.log('Categories found:', categories);
             const categoryIds = categories.map(cat => cat._id);
             query.category = { $in: categoryIds };
         }
@@ -151,7 +152,7 @@ exports.getInterventionById = async (req, res) => {
         const intervention = await Intervention.findById(id)
         .populate('category', 'name');
 
-        console.log('Intervention found:', intervention);
+        // console.log('Intervention found:', intervention);
         res.status(200).json({
             success: true,
             intervention

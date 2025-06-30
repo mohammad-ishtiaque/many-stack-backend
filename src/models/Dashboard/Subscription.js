@@ -13,8 +13,8 @@ const subscriptionSchema = new mongoose.Schema({
     validity: {
         type: String,
         required: true,
-        enum: ['Monthly', 'Yearly'],
-        default: 'Monthly'
+        enum: ['MONTHLY', 'ANNUALLY', 'FREE'],
+        default: 'MONTHLY'
     },
     features: {
         type: [String],
@@ -22,7 +22,7 @@ const subscriptionSchema = new mongoose.Schema({
     },
     isActive: {
         type: Boolean,
-        default: true
+        default: false
     },
     createdAt: {
         type: Date,
