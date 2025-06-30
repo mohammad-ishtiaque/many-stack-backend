@@ -259,14 +259,7 @@ exports.downloadSingleExpensePDF = async (req, res) => {
             });
         }
 
-        singleDocToPDF({
-            docData: expense,
-            fields: ['expenseName', 'expenseCategory', 'price', 'note', 'createdAt'],
-            labels: ['Name', 'Category', 'Price', 'Note', 'Date'],
-            filename: `expense_${id}.pdf`,
-            res,
-            title: 'Expense Details'
-        });
+        singleDocToPDF.generateExpensePDF(expense, res); // Directly streams PDF
     } catch (error) {
         res.status(500).json({
             success: false,
