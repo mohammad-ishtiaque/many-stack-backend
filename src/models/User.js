@@ -38,6 +38,9 @@ const userSchema = new mongoose.Schema({
         postalCode: String,
         country: String
     },
+    currency: {
+        type: String,
+    },
     gender: {
         type: String,
         enum: ['MALE', 'FEMALE', 'OTHER']
@@ -56,7 +59,7 @@ const userSchema = new mongoose.Schema({
 
     resetCode: { type: String },
     resetCodeExpires: { type: Date },
-    
+
     //email verification fields
     isEmailVerified: {
         type: Boolean,

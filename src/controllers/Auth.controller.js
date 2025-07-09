@@ -133,7 +133,7 @@ exports.login = async (req, res) => {
 
 // User registration
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, contact, nSiren, address, gender, password, role } = req.body;
+  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency } = req.body;
 
   try {
     // Check if user already exists in main User collection
@@ -162,6 +162,7 @@ exports.register = async (req, res) => {
       email,
       contact,
       nSiren,
+      currency,
       address: {
         streetNo: req.body.streetNo,
         streetName: req.body.streetName,
@@ -236,6 +237,7 @@ exports.verifyEmail = async (req, res) => {
       password: tempUser.password,
       contact: tempUser.contact,
       nSiren: tempUser.nSiren,
+      currency: tempUser.currency,
       address: tempUser.address,
       gender: tempUser.gender,
       role: tempUser.role,

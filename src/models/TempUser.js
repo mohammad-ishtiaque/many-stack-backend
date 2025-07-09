@@ -10,6 +10,7 @@ const tempUserSchema = new mongoose.Schema({
     },
     password: String,
     contact: String,
+    currency: String,
     nSiren: String,
     address: {
         streetNo: String,
