@@ -1,6 +1,7 @@
 const Invoice = require('../models/Invoice');
 const path = require('path');
 const fs = require('fs');
+const User = require('../models/User');
 const {generateInvoicePDF} = require('../utils/downloadpdf');
 //create invoice
 
@@ -45,7 +46,8 @@ exports.createInvoice = async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Invoice created successfully',
-            invoice
+            invoice,
+            user: req.user
         });
     } catch (error) {
         res.status(500).json({
@@ -145,7 +147,9 @@ exports.getAllInvoices = async (req, res) => {
 exports.getInvoiceById = async (req, res) => {
     try {
         const { id } = req.params;
-        const invoice = await Invoice.findById(id);
+        const invoice = await Invoice.findById(id).populate('user', 'firstName lastName email contact address.streetNo address.streetName address.city address.postalCode address.country');
+        // const user = await User.findById(invoice.user);
+        // console.log(user);
         
         if (!invoice) {
             return res.status(404).json({
