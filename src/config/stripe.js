@@ -22,7 +22,7 @@ const stripeConfig = {
     cancelUrl: process.env.STRIPE_CANCEL_URL || 'http://10.0.60.19:5000/cancel',
 };
 
-console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY);
+// console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY);
 
 // Helper function to create or retrieve Stripe customer
 const getOrCreateCustomer = async (user) => {

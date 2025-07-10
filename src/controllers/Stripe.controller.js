@@ -96,21 +96,35 @@ exports.createCheckoutSession = async (req, res) => {
 // Handle webhook events
 exports.handleWebhook = async (req, res) => {
     // Check if Stripe is configured
-    if (!stripe) {
-        return res.status(503).json({
-            success: false,
-            message: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your environment variables.'
-        });
-    }
-
-    const sig = req.headers['stripe-signature'];
+    // if (!stripe) {
+    //     return res.status(503).json({
+    //         success: false,
+    //         message: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your environment variables.'
+    //     });
+    // }
+    // const sig = req.headers['stripe-signature'];
     let event;
+
+    // console.log('Received webhook event:', req.body);
+    // console.log(req.headers);
+    // console.log("Request Body:=====================================", req.body);
+    const sig = req.headers["stripe-signature"];
+    // console.log(
+    //     "Content-Type:=====================================",
+    //     req.headers["content-type"]
+    // );
+    // console.log("Signature:=====================================", sig);
+
+
+
+    // let event;
 
     try {
         event = stripe.webhooks.constructEvent(
             req.body,
             sig,
-            process.env.STRIPE_WEBHOOK_SECRET
+            // process.env.STRIPE_WEBHOOK_SECRET
+            "whsec_3f0af8d21eb11a5309a2f4890f81af4a1184e4560665972e52bb7d417a1a2779"
         );
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
@@ -118,11 +132,14 @@ exports.handleWebhook = async (req, res) => {
     }
 
     try {
+        // console.log('Received event data object:', event.data.object);
+        console.log('Received event type:', event.type);
         switch (event.type) {
             case 'checkout.session.completed':
                 await handleCheckoutSessionCompleted(event.data.object);
                 break;
             case 'customer.subscription.created':
+                console.log("customer.subscription.created", event.data.object.metadata)
                 await handleSubscriptionCreated(event.data.object);
                 break;
             case 'customer.subscription.updated':
@@ -146,7 +163,7 @@ exports.handleWebhook = async (req, res) => {
         console.error('Error handling webhook:', error);
         res.status(500).json({ error: 'Webhook handler failed' });
     }
-};
+}
 
 // Webhook handlers
 const handleCheckoutSessionCompleted = async (session) => {
@@ -199,7 +216,7 @@ const handleCheckoutSessionCompleted = async (session) => {
             'subscription.isActive': true
         });
 
-        console.log(`Subscription activated for user: ${userId}`);
+        // console.log(`Subscription activated for user: ${userId}`);
     } catch (error) {
         console.error('Error handling checkout session completed:', error);
     }
@@ -279,7 +296,7 @@ const handlePaymentSucceeded = async (invoice) => {
     try {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-            console.log("handlePaymentSucceeded",subscription)
+            // console.log("handlePaymentSucceeded",subscription)
             const { userId } = subscription.metadata;
             
             

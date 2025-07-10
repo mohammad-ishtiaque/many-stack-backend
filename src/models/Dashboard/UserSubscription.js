@@ -4,20 +4,16 @@ const userSubscriptionSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
     },
     subscription: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Subscription',
-        required: true
     },
     stripeCustomerId: {
         type: String,
-        required: true
     },
     stripeSubscriptionId: {
         type: String,
-        required: true
     },
     stripePriceId: {
         type: String
@@ -48,7 +44,6 @@ const userSubscriptionSchema = new mongoose.Schema({
     },
     amount: {
         type: Number,
-        required: true
     },
     currency: {
         type: String,

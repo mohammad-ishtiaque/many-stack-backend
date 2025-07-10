@@ -147,7 +147,7 @@ exports.getAllInvoices = async (req, res) => {
 exports.getInvoiceById = async (req, res) => {
     try {
         const { id } = req.params;
-        const invoice = await Invoice.findById(id).populate('user', 'firstName lastName email contact address.streetNo address.streetName address.city address.postalCode address.country');
+        const invoice = await Invoice.findById(id).populate('user', 'firstName lastName email contact address');
         // const user = await User.findById(invoice.user);
         // console.log(user);
         
