@@ -122,9 +122,7 @@ exports.handleWebhook = async (req, res) => {
     try {
         event = stripe.webhooks.constructEvent(
             req.body,
-            sig,
-            // process.env.STRIPE_WEBHOOK_SECRET
-            "whsec_3f0af8d21eb11a5309a2f4890f81af4a1184e4560665972e52bb7d417a1a2779"
+            sig, process.env.STRIPE_WEBHOOK_SECRET
         );
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
@@ -132,14 +130,13 @@ exports.handleWebhook = async (req, res) => {
     }
 
     try {
-        // console.log('Received event data object:', event.data.object);
+        console.log('Received event data object:', event.data.object);
         console.log('Received event type:', event.type);
         switch (event.type) {
             case 'checkout.session.completed':
                 await handleCheckoutSessionCompleted(event.data.object);
                 break;
             case 'customer.subscription.created':
-                console.log("customer.subscription.created", event.data.object.metadata)
                 await handleSubscriptionCreated(event.data.object);
                 break;
             case 'customer.subscription.updated':
@@ -168,23 +165,30 @@ exports.handleWebhook = async (req, res) => {
 // Webhook handlers
 const handleCheckoutSessionCompleted = async (session) => {
     try {
-        const { userId, subscriptionId } = session.metadata;
+        const {
+            userId,
+            subscriptionId
+        } = session.metadata;
         console.log('Webhook session object:', session);
 
         // Defensive: check for required fields
         if (!userId || !subscriptionId || !session.customer || !session.subscription) {
-            console.error('Missing required fields in session:', session);
+            console.error('checkout.session.completed: Missing required metadata or session fields.', {
+                metadata: session.metadata,
+                customer: session.customer,
+                subscription: session.subscription
+            });
             return;
         }
 
         // Convert to ObjectId
-        const userObjectId = mongoose.Types.ObjectId(userId);
-        const subscriptionObjectId = mongoose.Types.ObjectId(subscriptionId);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const subscriptionObjectId = new mongoose.Types.ObjectId(subscriptionId);
 
         // Upsert UserSubscription
         const result = await UserSubscription.findOneAndUpdate(
-            { user: userObjectId, stripeSubscriptionId: session.subscription },
-            {
+            { stripeSubscriptionId: session.subscription }, // Use the subscription ID as the unique key
+            { // Use $set to avoid overwriting the whole document
                 user: userObjectId,
                 subscription: subscriptionObjectId,
                 stripeCustomerId: session.customer,
@@ -216,7 +220,7 @@ const handleCheckoutSessionCompleted = async (session) => {
             'subscription.isActive': true
         });
 
-        // console.log(`Subscription activated for user: ${userId}`);
+        console.log(`Subscription activated for user: ${userId}`);
     } catch (error) {
         console.error('Error handling checkout session completed:', error);
     }
@@ -225,7 +229,7 @@ const handleCheckoutSessionCompleted = async (session) => {
 const handleSubscriptionCreated = async (subscription) => {
     try {
         const { userId, subscriptionId } = subscription.metadata;
-        console.log("handleSubscriptionCreated", subscription.metadata)
+        // console.log("handleSubscriptionCreated", subscription.metadata)
         
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
@@ -296,7 +300,7 @@ const handlePaymentSucceeded = async (invoice) => {
     try {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-            // console.log("handlePaymentSucceeded",subscription)
+            console.log("handlePaymentSucceeded",subscription)
             const { userId } = subscription.metadata;
             
             
