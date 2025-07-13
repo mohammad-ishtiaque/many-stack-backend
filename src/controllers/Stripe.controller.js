@@ -263,7 +263,7 @@ const handleSubscriptionCreated = async (subscription) => {
 const handleSubscriptionUpdated = async (subscription) => {
     try {
         const { userId } = subscription.metadata;
-        
+
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
             {
@@ -289,7 +289,7 @@ const handleSubscriptionUpdated = async (subscription) => {
 const handleSubscriptionDeleted = async (subscription) => {
     try {
         const { userId } = subscription.metadata;
-        
+
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
             {
@@ -311,10 +311,10 @@ const handlePaymentSucceeded = async (invoice) => {
     try {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-            console.log("handlePaymentSucceeded",subscription)
+            console.log("handlePaymentSucceeded", subscription)
             const { userId } = subscription.metadata;
-            
-            
+
+
             // Update subscription period
             await UserSubscription.findOneAndUpdate(
                 { user: userId, stripeSubscriptionId: subscription.id },
@@ -334,7 +334,7 @@ const handlePaymentFailed = async (invoice) => {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
             const { userId } = subscription.metadata;
-            
+
             // Update subscription status
             await UserSubscription.findOneAndUpdate(
                 { user: userId, stripeSubscriptionId: subscription.id },
@@ -441,4 +441,32 @@ exports.getAllUserSubscriptions = async (req, res) => {
             error: error.message
         });
     }
-}; 
+};
+
+exports.assignFreePlanFromSubscriptionList = async (user, allPlans) => {
+    const now = new Date();
+    const end = new Date(now);
+    end.setDate(end.getDate() + 7); // 7-day free trial
+
+
+    const freePlan = allPlans.find(plan => plan.validity === 'FREE');
+    if (!freePlan) throw new Error('Free subscription plan not found');
+    // console.log('Assigning free plan:', freePlan);
+    console.log('Assigning free plan:', freePlan._id);
+
+
+    try {
+        user.subscription = {
+            plan: freePlan._id,
+            isActive: true,
+            startDate: now,
+            endDate: end,
+            isTrial: true
+        };
+        await user.save();
+
+    } catch (error) {
+        console.error('Error assigning free trial subscription:', error);
+        throw error;
+    }
+};

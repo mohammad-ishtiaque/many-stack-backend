@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const emailService = require('../utils/emailService');
 const TempUser = require('../models/TempUser');
+const Subscription = require('../models/Dashboard/Subscription');
+const { assignFreePlanFromSubscriptionList } = require('../controllers/Stripe.controller');
 
 // Unified login for users and admins
 exports.login = async (req, res) => {
@@ -51,18 +53,18 @@ exports.login = async (req, res) => {
       );
       return;
     }
-    
+
     // 1. Check user exists
     const user = await User.findOne({ email });
 
     if (!user) return res.status(400).json({ message: 'User not exist!' });
     // 2. Check if email is verified
     if (!user.isEmailVerified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
         message: 'Please verify your email first',
         isEmailVerified: false,
-        email: user.email 
+        email: user.email
       });
     }
 
@@ -71,14 +73,21 @@ exports.login = async (req, res) => {
     }
 
 
-    
+
 
     // 3. Check password
     const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     // 4. Check if blocked
     if (user.isBlocked) return res.status(403).json({ message: 'Account blocked' });
+
+    const allPlans = await Subscription.find({ isActive: true });
+    if (!user.subscription || !user.subscription.isActive) {
+      await assignFreePlanFromSubscriptionList(user, allPlans);
+    }
+
 
     // 5. Generate JWT
     const payload = {
@@ -108,6 +117,7 @@ exports.login = async (req, res) => {
                   email: user.email,
                   role: user.role,
                   permissions: admin?.permissions
+
                 }
               });
             });
@@ -196,7 +206,7 @@ exports.register = async (req, res) => {
       await TempUser.findOneAndDelete({ email });
       throw new Error('Failed to send verification email');
     }
-    
+
 
   } catch (err) {
     console.error(err.message);
@@ -213,7 +223,7 @@ exports.verifyEmail = async (req, res) => {
   if (!code) {
     return res.status(400).json({ success: false, message: 'Verification code is required' });
   }
-  
+
   try {
     // Find temporary user
     const tempUser = await TempUser.findOne({
@@ -244,39 +254,48 @@ exports.verifyEmail = async (req, res) => {
       isEmailVerified: true
     });
 
+
+
+
     await user.save();
 
     // Delete temporary user
     await TempUser.findOneAndDelete({ email });
 
-    // Generate JWT token
-    const payload = {
-      user: {
-        id: user.id,
-        role: user.role
-      }
-    };
+    res.status(200).json({
+      success: true,
+      message: 'Email verified successfully. You can now log in.',
+      email: user.email
+    });
 
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: '400h' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({
-          success: true,
-          message: 'Registration completed successfully',
-          token,
-          user: {
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role
-          }
-        });
-      }
-    );
+    // Generate JWT token
+    // const payload = {
+    //   user: {
+    //     id: user.id,
+    //     role: user.role
+    //   }
+    // };
+
+    // jwt.sign(
+    //   payload,
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: '400h' },
+    //   (err, token) => {
+    //     if (err) throw err;
+    //     res.json({
+    //       success: true,
+    //       message: 'Registration completed successfully',
+    //       token,
+    //       user: {
+    //         id: user.id,
+    //         firstName: user.firstName,
+    //         lastName: user.lastName,
+    //         email: user.email,
+    //         role: user.role
+    //       }
+    //     });
+    //   }
+    // );
 
   } catch (err) {
     console.error(err.message);
