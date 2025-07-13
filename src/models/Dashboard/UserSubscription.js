@@ -42,6 +42,11 @@ const userSubscriptionSchema = new mongoose.Schema({
     trialEnd: {
         type: Date
     },
+     trialPeriodDays: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     amount: {
         type: Number,
     },

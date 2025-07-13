@@ -20,6 +20,11 @@ const subscriptionSchema = new mongoose.Schema({
         type: [String],
         default: ['Access to all categories', 'Priority support', 'Exclusive content']
     },
+    trialPeriodDays: {
+        type: Number,
+        default: 0,
+        min: 0
+    },
     isActive: {
         type: Boolean,
         default: false
