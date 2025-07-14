@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { deleteFile } = require('../utils/unLinkFiles');
+const Subscription = require('../models/Dashboard/Subscription');
 
 // Get user profile using token
 exports.getUser = async (req, res) => {
@@ -309,3 +310,31 @@ exports.updateProfilePicture = async (req, res) => {
     }
 };
 
+exports.getTheSubscription = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).populate('subscription');
+        const plan = await Subscription.findById(user.subscription.plan);
+        // console.log(plan);
+        // console.log(user.subscription.plan);
+
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            subscription: user.subscription,
+            plan: plan,
+
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};

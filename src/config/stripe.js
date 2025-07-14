@@ -9,7 +9,7 @@ if (!process.env.STRIPE_SECRET_KEY) {
     console.warn('Please add STRIPE_SECRET_KEY to your .env file to enable Stripe integration.');
 }
 
-const stripe = process.env.STRIPE_SECRET_KEY 
+const stripe = process.env.STRIPE_SECRET_KEY
     ? require('stripe')(process.env.STRIPE_SECRET_KEY)
     : null;
 
@@ -18,8 +18,8 @@ const stripeConfig = {
     currency: 'usd',
     paymentMethodTypes: ['card'],
     mode: 'subscription',
-    successUrl: process.env.STRIPE_SUCCESS_URL || 'http://10.0.60.19:5000/success',
-    cancelUrl: process.env.STRIPE_CANCEL_URL || 'http://10.0.60.19:5000/cancel',
+    successUrl: process.env.STRIPE_SUCCESS_URL || 'http://13.39.251.121:5000/success',
+    cancelUrl: process.env.STRIPE_CANCEL_URL || 'http://13.39.251.121:5000/cancel',
 };
 
 // console.log('STRIPE_SECRET_KEY:', process.env.STRIPE_SECRET_KEY);
@@ -61,7 +61,7 @@ const createStripePrice = async (subscription) => {
 
     try {
         const interval = subscription.validity === 'ANNUALLY' ? 'year' : 'month';
-        
+
         const price = await stripe.prices.create({
             unit_amount: subscription.price * 100, // Convert to cents
             currency: stripeConfig.currency,
@@ -94,7 +94,7 @@ const getStripePrice = async (subscription) => {
 
     try {
         const interval = subscription.validity === 'ANNUALLY' ? 'year' : 'month';
-        
+
         // Try to find existing price
         const prices = await stripe.prices.list({
             active: true,
@@ -105,7 +105,7 @@ const getStripePrice = async (subscription) => {
         });
 
         // Find price with matching amount and metadata
-        const existingPrice = prices.data.find(price => 
+        const existingPrice = prices.data.find(price =>
             price.unit_amount === subscription.price * 100 &&
             price.product_data?.metadata?.subscriptionId === subscription._id.toString()
         );

@@ -200,7 +200,9 @@ const handleCheckoutSessionCompleted = async (session) => {
                 interval: session.metadata.validity === 'ANNUALLY' ? 'year' : 'month',
                 metadata: session.metadata,
                 currentPeriodStart: new Date(session.created * 1000), // Convert to Date
-                currentPeriodEnd: new Date((session.created + session.metadata.validity === 'ANNUALLY' ? 31536000 : 2592000) * 1000), // Add 1 year or 1 month in seconds
+                currentPeriodEnd: new Date(
+                    (session.created + (session.metadata.validity === 'ANNUALLY' ? 31536000 : 2592000)) * 1000
+                ), // Add 1 year or 1 month in seconds
                 cancelAtPeriodEnd: false,
                 canceledAt: null,
                 trialStart: null,
