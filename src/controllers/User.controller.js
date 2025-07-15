@@ -26,24 +26,17 @@ exports.getUser = async (req, res) => {
         // console.log(id)
         const user = await User.findById(id).select('-password')
         if (!user) {
-            return res.status(404).json({
+            return res.status(404).json({ 
                 success: false,
                 message: 'User not found'
             });
         }
 
-        const plan = await Subscription.findById(user.subscription.plan);
-
-        const fullSubscription = {
-            user,
-            showSubscription: true,
-            ...user.subscription.toObject(),
-            planDetails: plan ? plan.toObject() : null
-        };
 
         res.status(200).json({
             success: true,
-            data: fullSubscription,
+            data: user,
+             showSubscription: true,
             message: 'Profile retrieved successfully'
         });
     } catch (err) {
