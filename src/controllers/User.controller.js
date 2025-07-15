@@ -207,7 +207,7 @@ exports.uploadBusinessLogo = async (req, res) => {
         }
 
         // Update user with new logo
-        user.businessLogo = req.file.filename;
+        user.businessLogo = `uploads/${req.file.filename}`;
         await user.save();
 
         res.status(200).json({
