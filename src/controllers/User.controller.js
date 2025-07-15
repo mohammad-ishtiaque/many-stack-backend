@@ -36,6 +36,7 @@ exports.getUser = async (req, res) => {
 
         const fullSubscription = {
             user,
+            showSubscription: true,
             ...user.subscription.toObject(),
             planDetails: plan ? plan.toObject() : null
         };
