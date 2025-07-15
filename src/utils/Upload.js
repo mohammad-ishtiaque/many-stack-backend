@@ -1,5 +1,18 @@
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs').promises;
+
+// Ensure uploads directory exists
+async function ensureUploadsDirectory() {
+  try {
+    await fs.access('uploads');
+  } catch {
+    await fs.mkdir('uploads', { recursive: true });
+  }
+}
+
+// Ensure directory exists when the module is loaded
+ensureUploadsDirectory();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -11,7 +24,7 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = [ 'image/jpeg', 'image/png', 'image/jpg', 'image/gif', 'image/webp'];
+  const allowedTypes = [ 'image/jpeg', 'image/png', 'image/jpg'];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {

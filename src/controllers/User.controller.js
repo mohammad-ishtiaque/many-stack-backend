@@ -248,7 +248,7 @@ exports.uploadProfilePicture = async (req, res) => {
         }
 
         // Update user with new logo
-        user.profilePicture = req.file.filename;
+        user.profilePicture = `uploads/${req.file.filename}`;
         await user.save();
 
         res.status(200).json({

@@ -214,18 +214,35 @@ const handleCheckoutSessionCompleted = async (session) => {
         console.log('UserSubscription upsert result:', result);
 
         // Update user subscription status
+        // Get current subscription object to calculate duration
         const subscription = await Subscription.findById(subscriptionObjectId);
-        const endDate = new Date();
-        if (subscription && subscription.validity === 'ANNUALLY') {
-            endDate.setFullYear(endDate.getFullYear() + 1);
-        } else {
-            endDate.setMonth(endDate.getMonth() + 1);
+
+        // Default to now
+        let currentEndDate = new Date();
+
+        // Get the existing user
+        const userRecord = await User.findById(userObjectId);
+
+        // Check if current subscription end date exists and is in the future
+        if (userRecord.subscription?.endDate && new Date(userRecord.subscription.endDate) > new Date()) {
+            currentEndDate = new Date(userRecord.subscription.endDate);
         }
 
+        let newEndDate = new Date(currentEndDate);
+
+        if (subscription.validity === 'ANNUALLY') {
+            newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+        } else if (subscription.validity === 'MONTHLY') {
+            newEndDate.setMonth(newEndDate.getMonth() + 1);
+        } else if (subscription.validity === 'FREE') {
+            newEndDate.setDate(newEndDate.getDate() + 7);
+        }
+
+        // Save updated user subscription info
         await User.findByIdAndUpdate(userObjectId, {
             'subscription.plan': subscriptionObjectId,
             'subscription.startDate': new Date(),
-            'subscription.endDate': endDate,
+            'subscription.endDate': newEndDate,
             'subscription.isActive': true
         });
 
