@@ -24,7 +24,7 @@ exports.getUser = async (req, res) => {
         // Get user from database
         let id = decoded.user.id;
         // console.log(id)
-        const user = await User.findById(id).select('-password');
+        const user = await User.findById(id).select('-password')
         if (!user) {
             return res.status(404).json({
                 success: false,
@@ -32,9 +32,18 @@ exports.getUser = async (req, res) => {
             });
         }
 
+        const plan = await Subscription.findById(user.subscription.plan);
+
+        const fullSubscription = {
+            user,
+            ...user.subscription.toObject(),
+            planDetails: plan ? plan.toObject() : null
+        };
+
         res.status(200).json({
             success: true,
-            data: user
+            data: fullSubscription,
+            message: 'Profile retrieved successfully'
         });
     } catch (err) {
         if (err.name === 'JsonWebTokenError') {
@@ -313,7 +322,6 @@ exports.updateProfilePicture = async (req, res) => {
 exports.getTheSubscription = async (req, res) => {
     try {
         const user = await User.findById(req.user.id).populate('subscription');
-        const plan = await Subscription.findById(user.subscription.plan);
         // console.log(plan);
         // console.log(user.subscription.plan);
 
@@ -325,10 +333,18 @@ exports.getTheSubscription = async (req, res) => {
             });
         }
 
+        const plan = await Subscription.findById(user.subscription.plan);
+
+        const fullSubscription = {
+            ...user.subscription.toObject(),
+            planDetails: plan ? plan.toObject() : null
+        };
+
+
         res.status(200).json({
             success: true,
-            subscription: user.subscription,
-            plan: plan,
+            message: 'Subscription retrieved successfully',
+            subscription: fullSubscription
 
         });
     } catch (err) {
