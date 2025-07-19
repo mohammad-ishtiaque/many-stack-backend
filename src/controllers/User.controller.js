@@ -261,7 +261,7 @@ exports.uploadProfilePicture = async (req, res) => {
     } catch (err) {
         // Delete uploaded file if error occurs
         if (req.file) {
-            await deleteFile(req.file.path);
+            await deleteFile(`uploads/${req.file.filename}`);
         }
         
         res.status(500).json({
@@ -303,8 +303,8 @@ exports.updateProfilePicture = async (req, res) => {
     } catch (err) {
         // Delete uploaded file if error occurs
         if (req.file) {
-            await deleteFile(req.file.path);
-        }
+            await deleteFile(`uploads/${req.file.filename}`);
+        }       
         
         res.status(500).json({
             success: false,
