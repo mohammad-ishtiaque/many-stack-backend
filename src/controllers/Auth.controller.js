@@ -191,11 +191,34 @@ exports.register = async (req, res) => {
 
     // Send verification email
     try {
-      await emailService.sendOTP(
-        email,
-        verificationCode,
-        `${firstName} ${lastName}`
-      );
+      const emailOptions = {
+        to: email,
+        subject: `Email Verification Code`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Email Verification Code</h2>
+            <p>Hi ${firstName} ${lastName},</p>
+            <p>Please enter the verification code below to complete your registration:</p>
+            <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+              ${verificationCode}
+            </div>
+            <p>This code will expire in 15 minutes.</p>
+            <p>If you didn't request this registration, please ignore this email or contact support if you have concerns.</p>
+            <p style="color: #666; margin-top: 20px;">Best regards,<br>Your App Team</p>
+          </div>
+        `
+      };
+
+      const emailServiceResult = await emailService.sendEmail(emailOptions.to, emailOptions);
+
+      if (!emailServiceResult) {
+        console.error('Failed to send verification email');
+        await TempUser.findOneAndDelete({ email });
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification email'
+        });
+      }
 
       res.status(201).json({
         success: true,
@@ -203,8 +226,12 @@ exports.register = async (req, res) => {
         email: email
       });
     } catch (emailError) {
+      console.error(emailError.message);
       await TempUser.findOneAndDelete({ email });
-      throw new Error('Failed to send verification email');
+      return res.status(500).json({
+        success: false,
+        message: emailError.message || 'Failed to send verification email'
+      });
     }
 
 

@@ -2,6 +2,7 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { deleteFile } = require('../utils/unLinkFiles');
+const emailService = require('../utils/emailService');
 const Subscription = require('../models/Dashboard/Subscription');
 
 // Get user profile using token
@@ -345,6 +346,42 @@ exports.getTheSubscription = async (req, res) => {
         res.status(500).json({
             success: false,
             message: err.message
+        });
+    }
+};
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Get email subject and body from request body or use defaults
+        const emailSubject = req.body.emailSubject || 'Account Deletion Confirmation';
+        const emailBody = req.body.emailBody || 
+            `Hello ${user.firstName} ${user.lastName},\n\nYour account has been deleted successfully.`;
+
+        // Send email to user using email service
+        await emailService.sendEmail(user.email, {
+            subject: emailSubject,
+            html: emailBody
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully',
+            emailSent: true
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message,
+            emailSent: false
         });
     }
 };

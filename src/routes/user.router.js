@@ -12,7 +12,7 @@ router.post('/profile/upload-logo', userAuth, upload.single('businessLogo'), use
 router.post('/profile/upload-picture', userAuth, upload.single('profilePicture'), userController.uploadProfilePicture);
 router.put('/profile/update-picture', userAuth, upload.single('profilePicture'), userController.updateProfilePicture);
 router.get('/subscription', userAuth, userController.getTheSubscription);
-
+router.delete('/delete', userAuth, userController.deleteUser);
 
 
 module.exports = router;
