@@ -65,7 +65,7 @@ exports.getHomePageData = async (req, res) => {
                 totalIncome: totalIncomeAmount,
                 incomeChange: `${incomeChange}%`,
                 expenseChange: `${expenseChange}%`,
-                interventionPercentage: interventionPercentage.toFixed(1) + '%',
+                interventionChange: interventionPercentage.toFixed(1) + '%',
                 monthlyData,
                 todayHighlights: {
                     totalInterventions: todayInterventions.length,
