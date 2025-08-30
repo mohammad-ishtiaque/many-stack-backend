@@ -143,7 +143,7 @@ exports.login = async (req, res) => {
 
 // User registration
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency } = req.body;
+  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency, countryCode } = req.body;
 
   try {
     // Check if user already exists in main User collection
@@ -174,12 +174,13 @@ exports.register = async (req, res) => {
       nSiren,
       currency,
       address: {
-        streetNo: req.body.streetNo,
-        streetName: req.body.streetName,
-        city: req.body.city,
-        postalCode: req.body.postalCode,
-        country: req.body.country
+        streetNo: address.streetNo,
+        streetName: address.streetName,
+        city: address.city,
+        postalCode: address.postalCode,
+        country: address.country
       },
+      countryCode,
       gender: gender?.toUpperCase(),
       password: hashedPassword,
       role,
@@ -188,6 +189,7 @@ exports.register = async (req, res) => {
     });
 
     await tempUser.save();
+    // console.log(tempUser)
 
     // Send verification email
     try {
@@ -276,6 +278,7 @@ exports.verifyEmail = async (req, res) => {
       nSiren: tempUser.nSiren,
       currency: tempUser.currency,
       address: tempUser.address,
+      countryCode: tempUser.countryCode,
       gender: tempUser.gender,
       role: tempUser.role,
       isEmailVerified: true
@@ -285,12 +288,14 @@ exports.verifyEmail = async (req, res) => {
 
 
     await user.save();
+    // console.log(user)
 
     // Delete temporary user
     await TempUser.findOneAndDelete({ email });
 
     res.status(200).json({
       success: true,
+      // data: user,
       message: 'Email verified successfully. You can now log in.',
       email: user.email
     });

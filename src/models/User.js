@@ -40,6 +40,7 @@ const userSchema = new mongoose.Schema({
     },
     countryCode: {
         type: String,
+        default: "+33"
     },
     currency: {
         type: String,

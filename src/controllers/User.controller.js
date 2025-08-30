@@ -37,7 +37,7 @@ exports.getUser = async (req, res) => {
         res.status(200).json({
             success: true,
             data: user,
-             showSubscription: true,
+            showSubscription: true,
             message: 'Profile retrieved successfully'
         });
     } catch (err) {
@@ -86,7 +86,9 @@ exports.updateUser = async (req, res) => {
                         postalCode: req.body.address.postalCode,
                         country: req.body.address.country
                     },
-                    gender: req.body.gender
+                    gender: req.body.gender,
+                    countryCode: req.body.countryCode,
+                    currency: req.body.currency
                 }
             },
             { new: true, runValidators: true }
