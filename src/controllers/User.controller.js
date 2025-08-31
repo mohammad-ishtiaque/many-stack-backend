@@ -206,11 +206,11 @@ exports.uploadBusinessLogo = async (req, res) => {
 
         // Delete old logo if exists
         if (user.businessLogo) {
-            await deleteFile(`uploads/${user.businessLogo}`);
+            await deleteFile(user.businessLogo);
         }
 
         // Update user with new logo
-        user.businessLogo = `uploads/${req.file.filename}`;
+        user.businessLogo = req.file.location;
         await user.save();
 
         res.status(200).json({
@@ -223,7 +223,7 @@ exports.uploadBusinessLogo = async (req, res) => {
     } catch (err) {
         // Delete uploaded file if error occurs
         if (req.file) {
-            await deleteFile(req.file.path);
+            await deleteFile(req.file.location);
         }
         
         res.status(500).json({

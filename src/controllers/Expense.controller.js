@@ -17,7 +17,7 @@ exports.createExpense = async (req, res) => {
 
         // Process all images with the same location
         const images = req.files ? req.files.map(file => ({
-            url: file.path,
+            url: file.location,
             location: location,
             createdAt: new Date()
         })) : [];
@@ -185,7 +185,7 @@ exports.updateExpense = async (req, res) => {
 
         // Process new images with location
         const newImages = req.files ? req.files.map(file => ({
-            url: file.path,
+            url: file.location,
             location: location,
             createdAt: new Date()
         })) : [];
