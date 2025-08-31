@@ -233,6 +233,7 @@ exports.uploadBusinessLogo = async (req, res) => {
     }
 };
 
+
 exports.uploadProfilePicture = async (req, res) => {
     try {
 
@@ -245,13 +246,8 @@ exports.uploadProfilePicture = async (req, res) => {
 
         const user = await User.findById(req.user.id);
 
-        // Delete old logo if exists
-        if (user.profilePicture) {
-            await deleteFile(`uploads/${user.profilePicture}`);
-        }
-
-        // Update user with new logo
-        user.profilePicture = `uploads/${req.file.filename}`;
+        // Update user with new S3 image URL
+        user.profilePicture = req.file.location;
         await user.save();
 
         res.status(200).json({
@@ -262,11 +258,6 @@ exports.uploadProfilePicture = async (req, res) => {
             message: 'Profile picture uploaded successfully'
         });
     } catch (err) {
-        // Delete uploaded file if error occurs
-        if (req.file) {
-            await deleteFile(`uploads/${req.file.filename}`);
-        }
-        
         res.status(500).json({
             success: false,
             message: err.message
@@ -289,11 +280,11 @@ exports.updateProfilePicture = async (req, res) => {
 
         // Delete old logo if exists
         if (user.profilePicture) {
-            await deleteFile(`uploads/${user.profilePicture}`);
+            await deleteFile(user.profilePicture);
         }
 
         // Update user with new logo
-        user.profilePicture = req.file.filename;
+        user.profilePicture = req.file.location;
         await user.save();
 
         res.status(200).json({
@@ -306,7 +297,7 @@ exports.updateProfilePicture = async (req, res) => {
     } catch (err) {
         // Delete uploaded file if error occurs
         if (req.file) {
-            await deleteFile(`uploads/${req.file.filename}`);
+            await deleteFile(req.file.location);
         }       
         
         res.status(500).json({
