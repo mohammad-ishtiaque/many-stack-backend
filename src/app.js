@@ -1,5 +1,6 @@
 const express = require('express');
 const connectDB = require('./config/db');
+const dotenv = require('dotenv');
 const app = express();
 const authRoutes = require('./routes/auth.router');
 const userRoutes = require('./routes/user.router');
@@ -9,12 +10,12 @@ const interventionRoutes = require('./routes/intervention.router');
 const invoiceRoutes = require('./routes/invoice.router');
 const expenseRoutes = require('./routes/expenses.router');
 const subscriptionRoutes = require('./routes/Dashboard/subscription.router');
-
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const allcategoryRoutes = require('./routes/Dashboard/allcategory.router');
 const settingsRoutes = require('./routes/Dashboard/settings.router');
 const makeAdminRoutes = require('./routes/Dashboard/makeAdmin.router');
 const userManagementRoutes = require('./routes/Dashboard/usermanagement.router');
-const homePageRoutes = require('./routes/homePage.router');
+const homePageRoutes = require('./routes/homepage.router');
 const adminProfileRoutes = require('./routes/Dashboard/adminprofile');
 // const dashboardHomeRoutes = require('./routes/Dashboard/dashboardhome.router');
 const path = require('path');
@@ -24,7 +25,7 @@ const expressLayouts = require('express-ejs-layouts');
 // const insuranceRoutes = require('./routes/insurance.routes');
 // const maintenanceRoutes = require('./routes/maintenance.routes');
 // const repairRoutes = require('./routes/repair.routes');
-const dotenv = require('dotenv');
+
 const cors = require('cors');
 const stripeRoutes = require('./routes/stripe.router');
 // const path = require('path');
@@ -37,11 +38,11 @@ dotenv.config();
 
 // DB Connection
 connectDB();
-
+app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 // Middleware
 app.use(cors());
 
-app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
+
 
 
 

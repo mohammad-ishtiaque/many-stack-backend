@@ -38,6 +38,9 @@ const userSchema = new mongoose.Schema({
         postalCode: String,
         country: String
     },
+    countryCode: {
+        type: String
+    },
     currency: {
         type: String,
     },
@@ -77,10 +80,24 @@ const userSchema = new mongoose.Schema({
         default: null
     },
     subscription: {
-        plan: { type: mongoose.Schema.Types.ObjectId, ref: 'Subscription' },
-        startDate: Date,
-        isActive: { type: Boolean, default: false },
-        endDate: Date
+        plan: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Subscription'
+        },
+        isActive: {
+            type: Boolean,
+            default: false
+        },
+        isTrial: {
+            type: Boolean,
+            default: false
+        },
+        startDate: {
+            type: Date
+        },
+        endDate: {
+            type: Date
+        }
     },
     category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
     createdAt: { type: Date, default: Date.now }

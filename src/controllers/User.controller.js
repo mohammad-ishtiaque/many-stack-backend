@@ -2,6 +2,8 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { deleteFile } = require('../utils/unLinkFiles');
+const emailService = require('../utils/emailService');
+const Subscription = require('../models/Dashboard/Subscription');
 
 // Get user profile using token
 exports.getUser = async (req, res) => {
@@ -23,17 +25,20 @@ exports.getUser = async (req, res) => {
         // Get user from database
         let id = decoded.user.id;
         // console.log(id)
-        const user = await User.findById(id).select('-password');
+        const user = await User.findById(id).select('-password')
         if (!user) {
-            return res.status(404).json({
+            return res.status(404).json({ 
                 success: false,
                 message: 'User not found'
             });
         }
 
+
         res.status(200).json({
             success: true,
-            data: user
+            data: user,
+            showSubscription: true,
+            message: 'Profile retrieved successfully'
         });
     } catch (err) {
         if (err.name === 'JsonWebTokenError') {
@@ -81,7 +86,9 @@ exports.updateUser = async (req, res) => {
                         postalCode: req.body.address.postalCode,
                         country: req.body.address.country
                     },
-                    gender: req.body.gender
+                    gender: req.body.gender,
+                    countryCode: req.body.countryCode,
+                    currency: req.body.currency
                 }
             },
             { new: true, runValidators: true }
@@ -199,11 +206,11 @@ exports.uploadBusinessLogo = async (req, res) => {
 
         // Delete old logo if exists
         if (user.businessLogo) {
-            await deleteFile(`uploads/${user.businessLogo}`);
+            await deleteFile(user.businessLogo);
         }
 
         // Update user with new logo
-        user.businessLogo = req.file.filename;
+        user.businessLogo = req.file.location;
         await user.save();
 
         res.status(200).json({
@@ -216,7 +223,7 @@ exports.uploadBusinessLogo = async (req, res) => {
     } catch (err) {
         // Delete uploaded file if error occurs
         if (req.file) {
-            await deleteFile(req.file.path);
+            await deleteFile(req.file.location);
         }
         
         res.status(500).json({
@@ -225,6 +232,7 @@ exports.uploadBusinessLogo = async (req, res) => {
         });
     }
 };
+
 
 exports.uploadProfilePicture = async (req, res) => {
     try {
@@ -238,13 +246,8 @@ exports.uploadProfilePicture = async (req, res) => {
 
         const user = await User.findById(req.user.id);
 
-        // Delete old logo if exists
-        if (user.profilePicture) {
-            await deleteFile(`uploads/${user.profilePicture}`);
-        }
-
-        // Update user with new logo
-        user.profilePicture = req.file.filename;
+        // Update user with new S3 image URL
+        user.profilePicture = req.file.location;
         await user.save();
 
         res.status(200).json({
@@ -255,11 +258,6 @@ exports.uploadProfilePicture = async (req, res) => {
             message: 'Profile picture uploaded successfully'
         });
     } catch (err) {
-        // Delete uploaded file if error occurs
-        if (req.file) {
-            await deleteFile(req.file.path);
-        }
-        
         res.status(500).json({
             success: false,
             message: err.message
@@ -282,11 +280,11 @@ exports.updateProfilePicture = async (req, res) => {
 
         // Delete old logo if exists
         if (user.profilePicture) {
-            await deleteFile(`uploads/${user.profilePicture}`);
+            await deleteFile(user.profilePicture);
         }
 
         // Update user with new logo
-        user.profilePicture = req.file.filename;
+        user.profilePicture = req.file.location;
         await user.save();
 
         res.status(200).json({
@@ -299,8 +297,8 @@ exports.updateProfilePicture = async (req, res) => {
     } catch (err) {
         // Delete uploaded file if error occurs
         if (req.file) {
-            await deleteFile(req.file.path);
-        }
+            await deleteFile(req.file.location);
+        }       
         
         res.status(500).json({
             success: false,
@@ -309,3 +307,74 @@ exports.updateProfilePicture = async (req, res) => {
     }
 };
 
+exports.getTheSubscription = async (req, res) => {
+    try {
+        const user = await User.findById(req.user.id).populate('subscription');
+        // console.log(plan);
+        // console.log(user.subscription.plan);
+
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        const plan = await Subscription.findById(user.subscription.plan);
+
+        const fullSubscription = {
+            ...user.subscription.toObject(),
+            planDetails: plan ? plan.toObject() : null
+        };
+
+
+        res.status(200).json({
+            success: true,
+            message: 'Subscription retrieved successfully',
+            subscription: fullSubscription
+
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
+
+exports.deleteUser = async (req, res) => {
+    try {
+        const user = await User.findByIdAndDelete(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Get email subject and body from request body or use defaults
+        const emailSubject = req.body.emailSubject || 'Account Deletion Confirmation';
+        const emailBody = req.body.emailBody || 
+            `Hello ${user.firstName} ${user.lastName},\n\nYour account has been deleted successfully.`;
+
+        // Send email to user using email service
+        await emailService.sendEmail(user.email, {
+            subject: emailSubject,
+            html: emailBody
+        });
+
+        res.status(200).json({
+            success: true,
+            message: 'User deleted successfully',
+            emailSent: true
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: err.message,
+            emailSent: false
+        });
+    }
+};

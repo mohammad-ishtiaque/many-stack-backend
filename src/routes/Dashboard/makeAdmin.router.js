@@ -1,5 +1,5 @@
 const express = require('express');
-const { createAdmin, getAllAdmins,deleteAdmin,createSuperAdmin } = require('../../controllers/Dashboard/makeAdmin.controller');
+const { createAdmin, getAllAdmins,deleteAdmin,createSuperAdmin } = require('../../controllers/Dashboard/MakeAdmin.controller');
 const {  superAdminAuth } = require('../../middleware/auth');
 
 

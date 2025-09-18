@@ -96,21 +96,33 @@ exports.createCheckoutSession = async (req, res) => {
 // Handle webhook events
 exports.handleWebhook = async (req, res) => {
     // Check if Stripe is configured
-    if (!stripe) {
-        return res.status(503).json({
-            success: false,
-            message: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your environment variables.'
-        });
-    }
-
-    const sig = req.headers['stripe-signature'];
+    // if (!stripe) {
+    //     return res.status(503).json({
+    //         success: false,
+    //         message: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your environment variables.'
+    //     });
+    // }
+    // const sig = req.headers['stripe-signature'];
     let event;
+
+    // console.log('Received webhook event:', req.body);
+    // console.log(req.headers);
+    // console.log("Request Body:=====================================", req.body);
+    const sig = req.headers["stripe-signature"];
+    // console.log(
+    //     "Content-Type:=====================================",
+    //     req.headers["content-type"]
+    // );
+    // console.log("Signature:=====================================", sig);
+
+
+
+    // let event;
 
     try {
         event = stripe.webhooks.constructEvent(
             req.body,
-            sig,
-            process.env.STRIPE_WEBHOOK_SECRET
+            sig, process.env.STRIPE_WEBHOOK_SECRET
         );
     } catch (err) {
         console.error('Webhook signature verification failed:', err.message);
@@ -118,6 +130,8 @@ exports.handleWebhook = async (req, res) => {
     }
 
     try {
+        console.log('Received event data object:', event.data.object);
+        console.log('Received event type:', event.type);
         switch (event.type) {
             case 'checkout.session.completed':
                 await handleCheckoutSessionCompleted(event.data.object);
@@ -146,28 +160,32 @@ exports.handleWebhook = async (req, res) => {
         // console.error('Error handling webhook:', error);
         res.status(500).json({ error: 'Webhook handler failed' });
     }
-};
+}
 
 // Webhook handlers
 const handleCheckoutSessionCompleted = async (session) => {
     try {
         const { userId, subscriptionId } = session.metadata;
-        // console.log('Webhook session object:', session);
+        console.log('Webhook session object:', session);
 
         // Defensive: check for required fields
         if (!userId || !subscriptionId || !session.customer || !session.subscription) {
-            console.error('Missing required fields in session:', session);
+            console.error('checkout.session.completed: Missing required metadata or session fields.', {
+                metadata: session.metadata,
+                customer: session.customer,
+                subscription: session.subscription
+            });
             return;
         }
 
         // Convert to ObjectId
-        const userObjectId = mongoose.Types.ObjectId(userId);
-        const subscriptionObjectId = mongoose.Types.ObjectId(subscriptionId);
+        const userObjectId = new mongoose.Types.ObjectId(userId);
+        const subscriptionObjectId = new mongoose.Types.ObjectId(subscriptionId);
 
         // Upsert UserSubscription
         const result = await UserSubscription.findOneAndUpdate(
-            { user: userObjectId, stripeSubscriptionId: session.subscription },
-            {
+            { stripeSubscriptionId: session.subscription }, // Use the subscription ID as the unique key
+            { // Use $set to avoid overwriting the whole document
                 user: userObjectId,
                 subscription: subscriptionObjectId,
                 stripeCustomerId: session.customer,
@@ -177,25 +195,51 @@ const handleCheckoutSessionCompleted = async (session) => {
                 amount: session.amount_total ? session.amount_total / 100 : 0,
                 currency: session.currency || 'usd',
                 interval: session.metadata.validity === 'ANNUALLY' ? 'year' : 'month',
-                metadata: session.metadata
+                metadata: session.metadata,
+                currentPeriodStart: new Date(session.created * 1000), // Convert to Date
+                currentPeriodEnd: new Date(
+                    (session.created + (session.metadata.validity === 'ANNUALLY' ? 31536000 : 2592000)) * 1000
+                ), // Add 1 year or 1 month in seconds
+                cancelAtPeriodEnd: false,
+                canceledAt: null,
+                trialStart: null,
+                trialEnd: null,
+                trialPeriodDays: 0
             },
             { upsert: true, new: true }
         );
         // console.log('UserSubscription upsert result:', result);
 
         // Update user subscription status
+        // Get current subscription object to calculate duration
         const subscription = await Subscription.findById(subscriptionObjectId);
-        const endDate = new Date();
-        if (subscription && subscription.validity === 'ANNUALLY') {
-            endDate.setFullYear(endDate.getFullYear() + 1);
-        } else {
-            endDate.setMonth(endDate.getMonth() + 1);
+
+        // Default to now
+        let currentEndDate = new Date();
+
+        // Get the existing user
+        const userRecord = await User.findById(userObjectId);
+
+        // Check if current subscription end date exists and is in the future
+        if (userRecord.subscription?.endDate && new Date(userRecord.subscription.endDate) > new Date()) {
+            currentEndDate = new Date(userRecord.subscription.endDate);
         }
 
+        let newEndDate = new Date(currentEndDate);
+
+        if (subscription.validity === 'ANNUALLY') {
+            newEndDate.setFullYear(newEndDate.getFullYear() + 1);
+        } else if (subscription.validity === 'MONTHLY') {
+            newEndDate.setMonth(newEndDate.getMonth() + 1);
+        } else if (subscription.validity === 'FREE') {
+            newEndDate.setDate(newEndDate.getDate() + 7);
+        }
+
+        // Save updated user subscription info
         await User.findByIdAndUpdate(userObjectId, {
             'subscription.plan': subscriptionObjectId,
             'subscription.startDate': new Date(),
-            'subscription.endDate': endDate,
+            'subscription.endDate': newEndDate,
             'subscription.isActive': true
         });
 
@@ -208,7 +252,7 @@ const handleCheckoutSessionCompleted = async (session) => {
 const handleSubscriptionCreated = async (subscription) => {
     try {
         const { userId, subscriptionId } = subscription.metadata;
-        // console.log("handleSubscriptionCreated", subscription.metadata)
+        console.log("handleSubscriptionCreated", subscription.metadata)
         
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
@@ -231,7 +275,7 @@ const handleSubscriptionCreated = async (subscription) => {
 const handleSubscriptionUpdated = async (subscription) => {
     try {
         const { userId } = subscription.metadata;
-        
+
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
             {
@@ -257,7 +301,7 @@ const handleSubscriptionUpdated = async (subscription) => {
 const handleSubscriptionDeleted = async (subscription) => {
     try {
         const { userId } = subscription.metadata;
-        
+
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
             {
@@ -279,10 +323,10 @@ const handlePaymentSucceeded = async (invoice) => {
     try {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-            // console.log("handlePaymentSucceeded",subscription)
+            console.log("handlePaymentSucceeded",subscription)
             const { userId } = subscription.metadata;
-            
-            
+
+
             // Update subscription period
             await UserSubscription.findOneAndUpdate(
                 { user: userId, stripeSubscriptionId: subscription.id },
@@ -302,7 +346,7 @@ const handlePaymentFailed = async (invoice) => {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
             const { userId } = subscription.metadata;
-            
+
             // Update subscription status
             await UserSubscription.findOneAndUpdate(
                 { user: userId, stripeSubscriptionId: subscription.id },
@@ -409,4 +453,32 @@ exports.getAllUserSubscriptions = async (req, res) => {
             error: error.message
         });
     }
-}; 
+};
+
+exports.assignFreePlanFromSubscriptionList = async (user, allPlans) => {
+    const now = new Date();
+    const end = new Date(now);
+    end.setDate(end.getDate() + 7); // 7-day free trial
+
+
+    const freePlan = allPlans.find(plan => plan.validity === 'FREE');
+    if (!freePlan) throw new Error('Free subscription plan not found');
+    // console.log('Assigning free plan:', freePlan);
+    console.log('Assigning free plan:', freePlan._id);
+
+
+    try {
+        user.subscription = {
+            plan: freePlan._id,
+            isActive: true,
+            startDate: now,
+            endDate: end,
+            isTrial: true
+        };
+        await user.save();
+
+    } catch (error) {
+        console.error('Error assigning free trial subscription:', error);
+        throw error;
+    }
+};

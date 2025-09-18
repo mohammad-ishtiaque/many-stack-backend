@@ -20,7 +20,7 @@ exports.createIntervention = async (req, res) => {
         // Process all images with the same location
         const imagePromises = req.files ? req.files.map(async (file) => {
             return {
-                url: file.path,
+                url: file.location,
                 location: location,
                 createdAt: new Date()
             };
@@ -186,7 +186,7 @@ exports.updateIntervention = async (req, res) => {
 
         // Process new images with the same location
         const newImages = req.files ? req.files.map(file => ({
-            url: file.path,
+            url: file.location,
             location: location,
             createdAt: new Date()
         })) : [];
@@ -340,7 +340,7 @@ exports.addImages = async (req, res) => {
 
         // Create new image objects with the same location
         const newImages = req.files.map(file => ({
-            url: file.path,
+            url: file.location,
             location: location,
             createdAt: new Date()
         }));

@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Admin = require('../models/Admin');
 const emailService = require('../utils/emailService');
 const TempUser = require('../models/TempUser');
+const Subscription = require('../models/Dashboard/Subscription');
+const { assignFreePlanFromSubscriptionList } = require('../controllers/Stripe.controller');
 
 // Unified login for users and admins
 exports.login = async (req, res) => {
@@ -51,18 +53,18 @@ exports.login = async (req, res) => {
       );
       return;
     }
-    
+
     // 1. Check user exists
     const user = await User.findOne({ email });
 
     if (!user) return res.status(400).json({ message: 'User not exist!' });
     // 2. Check if email is verified
     if (!user.isEmailVerified) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
         message: 'Please verify your email first',
         isEmailVerified: false,
-        email: user.email 
+        email: user.email
       });
     }
 
@@ -71,14 +73,21 @@ exports.login = async (req, res) => {
     }
 
 
-    
+
 
     // 3. Check password
     const isMatch = await bcrypt.compare(password, user.password);
+    
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     // 4. Check if blocked
     if (user.isBlocked) return res.status(403).json({ message: 'Account blocked' });
+
+    const allPlans = await Subscription.find({ isActive: true });
+    if (!user.subscription || !user.subscription.isActive) {
+      await assignFreePlanFromSubscriptionList(user, allPlans);
+    }
+
 
     // 5. Generate JWT
     const payload = {
@@ -108,6 +117,7 @@ exports.login = async (req, res) => {
                   email: user.email,
                   role: user.role,
                   permissions: admin?.permissions
+
                 }
               });
             });
@@ -133,7 +143,7 @@ exports.login = async (req, res) => {
 
 // User registration
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency } = req.body;
+  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency, countryCode } = req.body;
 
   try {
     // Check if user already exists in main User collection
@@ -164,12 +174,13 @@ exports.register = async (req, res) => {
       nSiren,
       currency,
       address: {
-        streetNo: req.body.streetNo,
-        streetName: req.body.streetName,
-        city: req.body.city,
-        postalCode: req.body.postalCode,
-        country: req.body.country
+        streetNo: address.streetNo,
+        streetName: address.streetName,
+        city: address.city,
+        postalCode: address.postalCode,
+        country: address.country
       },
+      countryCode,
       gender: gender?.toUpperCase(),
       password: hashedPassword,
       role,
@@ -178,14 +189,38 @@ exports.register = async (req, res) => {
     });
 
     await tempUser.save();
+    // console.log(tempUser)
 
     // Send verification email
     try {
-      await emailService.sendOTP(
-        email,
-        verificationCode,
-        `${firstName} ${lastName}`
-      );
+      const emailOptions = {
+        to: email,
+        subject: `Email Verification Code`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">Email Verification Code</h2>
+            <p>Hi ${firstName} ${lastName},</p>
+            <p>Please enter the verification code below to complete your registration:</p>
+            <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
+              ${verificationCode}
+            </div>
+            <p>This code will expire in 15 minutes.</p>
+            <p>If you didn't request this registration, please ignore this email or contact support if you have concerns.</p>
+            <p style="color: #666; margin-top: 20px;">Best regards,<br>Your App Team</p>
+          </div>
+        `
+      };
+
+      const emailServiceResult = await emailService.sendEmail(emailOptions.to, emailOptions);
+
+      if (!emailServiceResult) {
+        console.error('Failed to send verification email');
+        await TempUser.findOneAndDelete({ email });
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send verification email'
+        });
+      }
 
       res.status(201).json({
         success: true,
@@ -193,10 +228,14 @@ exports.register = async (req, res) => {
         email: email
       });
     } catch (emailError) {
+      console.error(emailError.message);
       await TempUser.findOneAndDelete({ email });
-      throw new Error('Failed to send verification email');
+      return res.status(500).json({
+        success: false,
+        message: emailError.message || 'Failed to send verification email'
+      });
     }
-    
+
 
   } catch (err) {
     console.error(err.message);
@@ -213,7 +252,7 @@ exports.verifyEmail = async (req, res) => {
   if (!code) {
     return res.status(400).json({ success: false, message: 'Verification code is required' });
   }
-  
+
   try {
     // Find temporary user
     const tempUser = await TempUser.findOne({
@@ -239,44 +278,56 @@ exports.verifyEmail = async (req, res) => {
       nSiren: tempUser.nSiren,
       currency: tempUser.currency,
       address: tempUser.address,
+      countryCode: tempUser.countryCode,
       gender: tempUser.gender,
       role: tempUser.role,
       isEmailVerified: true
     });
 
+
+
+
     await user.save();
+    // console.log(user)
 
     // Delete temporary user
     await TempUser.findOneAndDelete({ email });
 
-    // Generate JWT token
-    const payload = {
-      user: {
-        id: user.id,
-        role: user.role
-      }
-    };
+    res.status(200).json({
+      success: true,
+      // data: user,
+      message: 'Email verified successfully. You can now log in.',
+      email: user.email
+    });
 
-    jwt.sign(
-      payload,
-      process.env.JWT_SECRET,
-      { expiresIn: '400h' },
-      (err, token) => {
-        if (err) throw err;
-        res.json({
-          success: true,
-          message: 'Registration completed successfully',
-          token,
-          user: {
-            id: user.id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            role: user.role
-          }
-        });
-      }
-    );
+    // Generate JWT token
+    // const payload = {
+    //   user: {
+    //     id: user.id,
+    //     role: user.role
+    //   }
+    // };
+
+    // jwt.sign(
+    //   payload,
+    //   process.env.JWT_SECRET,
+    //   { expiresIn: '400h' },
+    //   (err, token) => {
+    //     if (err) throw err;
+    //     res.json({
+    //       success: true,
+    //       message: 'Registration completed successfully',
+    //       token,
+    //       user: {
+    //         id: user.id,
+    //         firstName: user.firstName,
+    //         lastName: user.lastName,
+    //         email: user.email,
+    //         role: user.role
+    //       }
+    //     });
+    //   }
+    // );
 
   } catch (err) {
     console.error(err.message);
