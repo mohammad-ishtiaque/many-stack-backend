@@ -259,7 +259,7 @@ exports.downloadSingleExpensePDF = async (req, res) => {
             });
         }
 
-        singleDocToPDF.generateExpensePDF(expense, res); // Directly streams PDF
+        await singleDocToPDF.generateExpensePDF(expense, res); // stream PDF and await completion
     } catch (error) {
         res.status(500).json({
             success: false,

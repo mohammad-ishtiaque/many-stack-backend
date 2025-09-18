@@ -1,6 +1,28 @@
 const PDFDocument = require('pdfkit');
+const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
-exports.generateInvoicePDF = (invoice, res) => {
+// Helper: Load image from URL (S3/public) as Buffer or fallback to local path
+async function loadImageInput(src) {
+    if (!src) return null;
+    try {
+        if (typeof src === 'string' && /^https?:\/\//i.test(src)) {
+            const response = await axios.get(src, { responseType: 'arraybuffer' });
+            return Buffer.from(response.data);
+        }
+        // Treat as local path
+        const absPath = path.isAbsolute(src) ? src : path.resolve(src);
+        if (fs.existsSync(absPath)) {
+            return absPath;
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+exports.generateInvoicePDF = async (invoice, res) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -14,15 +36,28 @@ exports.generateInvoicePDF = (invoice, res) => {
         .text('INVOICE', 0, 30, { align: 'center' })
         .moveDown(50);
 
+    // Try to render business logo from S3/public URL or local fallback
+    try {
+        const logoSrcCandidate = invoice?.user?.businessLogo;
+        const localFallback = logoSrcCandidate && !/^https?:\/\//i.test(logoSrcCandidate)
+            ? `uploads/${logoSrcCandidate}`
+            : null;
+        const logoInput = await loadImageInput(logoSrcCandidate || localFallback);
+        if (logoInput) {
+            doc.image(logoInput, 50, 45, { width: 100 });
+        }
+    } catch (_) {
+        // ignore logo failures
+    }
+
     doc
-        .image(`uploads/${invoice.user.businessLogo}`, 50, 45, { width: 100 })
         .fontSize(14)
         .font('Helvetica-Bold')
         .text(`${invoice.invoiceId}`, 400, 50, { align: 'right' })
         .moveDown(30)
 
 
-    doc.text(`Date: ${new Date(invoice.data).toLocaleDateString()}`, 400, 70, { align: 'right' });
+    doc.text(`Date: ${new Date(invoice.date || invoice.data).toLocaleDateString()}`, 400, 70, { align: 'right' });
     doc.moveDown(2);
 
     // === Customer Info ===
@@ -84,65 +119,17 @@ exports.generateInvoicePDF = (invoice, res) => {
         .fillColor(invoice.status === 'PAID' ? 'green' : 'red')
         .text(`Status: ${invoice.status}`, 400, y + 30, { width: 100, align: 'right' });
 
-    // === Images Section ===
-    // if (invoice.images && invoice.images.length > 0) {
-    //     doc
-    //         .font('Helvetica-Bold')
-    //         .fontSize(14)
-    //         .text('Images:', { underline: true })
-    //         .moveDown(1);
-
-    //     const imagesPerRow = 2;
-    //     const imageWidth = 200;
-    //     const imageHeight = 150;
-    //     const margin = 50;
-    //     const captionHeight = 35;
-    //     let startY = doc.y;
-
-    //     for (let i = 0; i < invoice.images.length; i += imagesPerRow) {
-    //         let rowY = startY;
-    //         // Draw images in the row
-    //         for (let j = 0; j < imagesPerRow; j++) {
-    //             const index = i + j;
-    //             if (index >= invoice.images.length) break;
-    //             const image = invoice.images[index];
-    //             const x = margin + (j * (imageWidth + 50));
-    //             try {
-    //                 doc.image(image.url, x, rowY, {
-    //                     width: imageWidth,
-    //                     height: imageHeight,
-    //                     fit: [imageWidth, imageHeight]
-    //                 });
-    //             } catch (error) {
-    //                 doc.font('Helvetica').fontSize(10).text('Image failed to load', x, rowY);
-    //             }
-    //         }
-    //         // Draw captions below each image
-    //         for (let j = 0; j < imagesPerRow; j++) {
-    //             const index = i + j;
-    //             if (index >= invoice.images.length) break;
-    //             const image = invoice.images[index];
-    //             const x = margin + (j * (imageWidth + 50));
-    //             const captionY = rowY + imageHeight + 5;
-    //             doc.font('Helvetica').fontSize(10)
-    //                 .text(`Image ${index + 1}: ${image.location || 'Unknown Location'}`, x, captionY, { width: imageWidth })
-    //                 .text(`${new Date(image.createdAt).toLocaleDateString()}`, x, captionY + 15, { width: imageWidth });
-    //         }
-    //         // Move Y for next row
-    //         startY = rowY + imageHeight + captionHeight + 20;
-    //         if (startY > doc.page.height - 100) {
-    //             doc.addPage();
-    //             startY = doc.y;
-    //         }
-    //     }
-    // }
-
-    doc.end();
+    // Finalize when the stream is ready
+    return new Promise((resolve, reject) => {
+        doc.on('end', resolve);
+        doc.on('error', reject);
+        doc.end();
+    });
 };
 
 
 
-exports.generateInterventionPDF = (intervention, res) => {
+exports.generateInterventionPDF = async (intervention, res) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -214,7 +201,9 @@ exports.generateInterventionPDF = (intervention, res) => {
                 const image = intervention.images[index];
                 const x = margin + (j * (imageWidth + 50));
                 try {
-                    doc.image(image.url, x, rowY, {
+                    const imgInput = await loadImageInput(image.url || image.src || image.path);
+                    if (!imgInput) throw new Error('No image input');
+                    doc.image(imgInput, x, rowY, {
                         width: imageWidth,
                         height: imageHeight,
                         fit: [imageWidth, imageHeight]
@@ -250,11 +239,15 @@ exports.generateInterventionPDF = (intervention, res) => {
         }
     }
 
-    doc.end();
+    return new Promise((resolve, reject) => {
+        doc.on('end', resolve);
+        doc.on('error', reject);
+        doc.end();
+    });
 };
 
 
-exports.generateExpensePDF = (expense, res) => {
+exports.generateExpensePDF = async (expense, res) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -319,7 +312,9 @@ exports.generateExpensePDF = (expense, res) => {
                 const image = expense.images[index];
                 const x = margin + (j * (imageWidth + 50));
                 try {
-                    doc.image(image.url, x, rowY, {
+                    const imgInput = await loadImageInput(image.url || image.src || image.path);
+                    if (!imgInput) throw new Error('No image input');
+                    doc.image(imgInput, x, rowY, {
                         width: imageWidth,
                         height: imageHeight,
                         fit: [imageWidth, imageHeight]
@@ -349,7 +344,11 @@ exports.generateExpensePDF = (expense, res) => {
         }
     }
 
-    doc.end();
+    return new Promise((resolve, reject) => {
+        doc.on('end', resolve);
+        doc.on('error', reject);
+        doc.end();
+    });
 };
 
 

@@ -373,7 +373,7 @@ exports.downloadInterventionPDF = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Intervention not found' });
       }
   
-      singleDocToPDF.generateInterventionPDF(intervention, res); // ✅ Directly streams PDF
+      await singleDocToPDF.generateInterventionPDF(intervention, res); // stream PDF and await completion
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

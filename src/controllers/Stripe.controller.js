@@ -143,7 +143,7 @@ exports.handleWebhook = async (req, res) => {
 
         res.json({ received: true });
     } catch (error) {
-        console.error('Error handling webhook:', error);
+        // console.error('Error handling webhook:', error);
         res.status(500).json({ error: 'Webhook handler failed' });
     }
 };
@@ -152,7 +152,7 @@ exports.handleWebhook = async (req, res) => {
 const handleCheckoutSessionCompleted = async (session) => {
     try {
         const { userId, subscriptionId } = session.metadata;
-        console.log('Webhook session object:', session);
+        // console.log('Webhook session object:', session);
 
         // Defensive: check for required fields
         if (!userId || !subscriptionId || !session.customer || !session.subscription) {
@@ -181,7 +181,7 @@ const handleCheckoutSessionCompleted = async (session) => {
             },
             { upsert: true, new: true }
         );
-        console.log('UserSubscription upsert result:', result);
+        // console.log('UserSubscription upsert result:', result);
 
         // Update user subscription status
         const subscription = await Subscription.findById(subscriptionObjectId);
@@ -199,7 +199,7 @@ const handleCheckoutSessionCompleted = async (session) => {
             'subscription.isActive': true
         });
 
-        console.log(`Subscription activated for user: ${userId}`);
+        // console.log(`Subscription activated for user: ${userId}`);
     } catch (error) {
         console.error('Error handling checkout session completed:', error);
     }
@@ -208,7 +208,7 @@ const handleCheckoutSessionCompleted = async (session) => {
 const handleSubscriptionCreated = async (subscription) => {
     try {
         const { userId, subscriptionId } = subscription.metadata;
-        console.log("handleSubscriptionCreated", subscription.metadata)
+        // console.log("handleSubscriptionCreated", subscription.metadata)
         
         await UserSubscription.findOneAndUpdate(
             { user: userId, stripeSubscriptionId: subscription.id },
@@ -279,7 +279,7 @@ const handlePaymentSucceeded = async (invoice) => {
     try {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-            console.log("handlePaymentSucceeded",subscription)
+            // console.log("handlePaymentSucceeded",subscription)
             const { userId } = subscription.metadata;
             
             

@@ -8,8 +8,8 @@ const HOST = process.env.HOST_URL || '0.0.0.0';
 
 
 
-app.listen(PORT,HOST, () => {
-  console.log(`Many Stack backend is running on port http://${HOST}:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`Many Stack backend is running on port ${PORT}`);
 });
 
 
