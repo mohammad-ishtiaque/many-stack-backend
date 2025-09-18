@@ -53,25 +53,24 @@ exports.getHomePageData = async (req, res) => {
             ? (((currentMonthIncome - currentMonthExpenses) - (prevMonthIncome - prevMonthExpenses)) / (prevMonthIncome - prevMonthExpenses) * 100).toFixed(1)
             : 0;
 
-        // Get current month data separately
-        const currentMonthIndex = today.getMonth();
+        // Get current month data separately (reuse currentMonthIndex defined above)
         const currentMonthInterventions = interventions.filter(int => 
             new Date(int.createdAt).getMonth() === currentMonthIndex
         );
-        const currentMonthExpenses = expenses.filter(exp => 
+        const currentMonthExpensesList = expenses.filter(exp => 
             new Date(exp.createdAt).getMonth() === currentMonthIndex
         );
 
         const currentMonthData = {
             income: currentMonthInterventions.reduce((sum, int) => sum + int.price, 0),
-            expenses: currentMonthExpenses.reduce((sum, exp) => sum + exp.price, 0),
+            expenses: currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0),
             profit: currentMonthInterventions.reduce((sum, int) => sum + int.price, 0) - 
-                    currentMonthExpenses.reduce((sum, exp) => sum + exp.price, 0)
+                    currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0)
         };
 
         // Calculate current month statistics
         const currentMonthTotalInterventions = currentMonthInterventions.length;
-        const currentMonthTotalExpenses = currentMonthExpenses.length;
+        const currentMonthTotalExpenses = currentMonthExpensesList.length;
         const currentMonthTotalIncome = currentMonthData.income;
         const currentMonthTotalProfit = currentMonthData.profit;
 
@@ -90,14 +89,14 @@ exports.getHomePageData = async (req, res) => {
             success: true,
             data: {
                 totalProfit: totalProfit,
-                profitChange: `${percentageChange}%`,
+                profitChange: `${profitChange}%`,
                 totalInterventions: interventions.length,
                 totalExpenses: expenses.length,
-                totalExpensesInPrice: totalExpenses,
-                totalInterventionsInPrice: totalIncome,
-                totalIncome: totalIncome,
-                incomeChange: `${percentageChange}%`,
-                interventionChange: `${percentageChange}%`,
+                totalExpensesInPrice: totalExpenseAmount,
+                totalInterventionsInPrice: totalIncomeAmount,
+                totalIncome: totalIncomeAmount,
+                incomeChange: `${incomeChange}%`,
+                interventionChange: `${interventionPercentage.toFixed(1)}%`,
                 monthlyData: monthlyData,
                 todayHighlights: {
                     totalInterventions: todayInterventions.length,
