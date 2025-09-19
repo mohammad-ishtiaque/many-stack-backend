@@ -36,10 +36,8 @@ const userSchema = new mongoose.Schema({
         streetName: String,
         city: String,
         postalCode: String,
-        country: String
-    },
-    countryCode: {
-        type: String
+        country: String,
+        countryCode: String
     },
     currency: {
         type: String,

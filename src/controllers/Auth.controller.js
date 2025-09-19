@@ -143,7 +143,7 @@ exports.login = async (req, res) => {
 
 // User registration
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency, countryCode } = req.body;
+  const { firstName, lastName, email, contact, nSiren, address, gender, password, role, currency } = req.body;
 
   try {
     // Check if user already exists in main User collection
@@ -178,9 +178,9 @@ exports.register = async (req, res) => {
         streetName: address.streetName,
         city: address.city,
         postalCode: address.postalCode,
-        country: address.country
+        country: address.country,
+        countryCode: address.countryCode
       },
-      countryCode,
       gender: gender?.toUpperCase(),
       password: hashedPassword,
       role,
