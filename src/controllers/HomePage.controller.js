@@ -36,7 +36,9 @@ exports.getHomePageData = async (req, res) => {
             int => int.createdAt >= today && int.createdAt < new Date(today.getTime() + 24*60*60*1000)
         );
         const todayTotalPrice = todayInterventions.reduce((sum, int) => sum + int.price, 0);
-        const interventionPercentage = (todayInterventions.length / interventions.length) * 100;
+        const interventionPercentage = interventions.length > 0 
+            ? (todayInterventions.length / interventions.length) * 100 
+            : 0;
 
         // Example: compare this month vs last month
         const currentMonthIndex = today.getMonth();
