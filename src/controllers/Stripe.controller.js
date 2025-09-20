@@ -157,7 +157,7 @@ exports.handleWebhook = async (req, res) => {
 
         res.json({ received: true });
     } catch (error) {
-        console.error('Error handling webhook:', error);
+        // console.error('Error handling webhook:', error);
         res.status(500).json({ error: 'Webhook handler failed' });
     }
 }
@@ -165,10 +165,7 @@ exports.handleWebhook = async (req, res) => {
 // Webhook handlers
 const handleCheckoutSessionCompleted = async (session) => {
     try {
-        const {
-            userId,
-            subscriptionId
-        } = session.metadata;
+        const { userId, subscriptionId } = session.metadata;
         console.log('Webhook session object:', session);
 
         // Defensive: check for required fields
@@ -211,7 +208,7 @@ const handleCheckoutSessionCompleted = async (session) => {
             },
             { upsert: true, new: true }
         );
-        console.log('UserSubscription upsert result:', result);
+        // console.log('UserSubscription upsert result:', result);
 
         // Update user subscription status
         // Get current subscription object to calculate duration
@@ -246,7 +243,7 @@ const handleCheckoutSessionCompleted = async (session) => {
             'subscription.isActive': true
         });
 
-        console.log(`Subscription activated for user: ${userId}`);
+        // console.log(`Subscription activated for user: ${userId}`);
     } catch (error) {
         console.error('Error handling checkout session completed:', error);
     }
@@ -254,26 +251,22 @@ const handleCheckoutSessionCompleted = async (session) => {
 
 const handleSubscriptionCreated = async (subscription) => {
     try {
-        // The 'checkout.session.completed' event is the primary source of truth for creation.
-        // This handler serves as a fallback and for subscriptions created outside of checkout.
-        // We use the stripeSubscriptionId as the unique key to find and update the record.
-
-        const updateData = {
-            status: subscription.status,
-            // A subscription is considered active if it's 'trialing' or 'active'.
-            isActive: ['trialing', 'active'].includes(subscription.status),
-            currentPeriodStart: new Date(subscription.current_period_start * 1000),
-            currentPeriodEnd: new Date(subscription.current_period_end * 1000),
-            cancelAtPeriodEnd: subscription.cancel_at_period_end,
-            trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
-            trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
-            stripeCustomerId: subscription.customer,
-            metadata: subscription.metadata
-        };
-
-        // Use $set to only update specified fields, preventing overwrites from race conditions.
-        await UserSubscription.findOneAndUpdate({ stripeSubscriptionId: subscription.id }, { $set: updateData }, { upsert: true, new: true });
-        console.log(`Subscription created/updated in DB: ${subscription.id} with status: ${subscription.status}`);
+        const { userId, subscriptionId } = subscription.metadata;
+        console.log("handleSubscriptionCreated", subscription.metadata)
+        
+        await UserSubscription.findOneAndUpdate(
+            { user: userId, stripeSubscriptionId: subscription.id },
+            {
+                status: subscription.status,
+                isActive: true,
+                currentPeriodStart: new Date(subscription.current_period_start * 1000),
+                currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+                cancelAtPeriodEnd: subscription.cancel_at_period_end,
+                trialStart: subscription.trial_start ? new Date(subscription.trial_start * 1000) : null,
+                trialEnd: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null
+            },
+            { upsert: true, new: true }
+        );
     } catch (error) {
         console.error('Error handling subscription created:', error);
     }
@@ -330,7 +323,7 @@ const handlePaymentSucceeded = async (invoice) => {
     try {
         if (invoice.subscription) {
             const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
-            console.log("handlePaymentSucceeded", subscription)
+            console.log("handlePaymentSucceeded",subscription)
             const { userId } = subscription.metadata;
 
 
