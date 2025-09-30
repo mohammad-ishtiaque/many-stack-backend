@@ -58,10 +58,7 @@ exports.getAllInterventions = async (req, res) => {
         const page = parseInt(req.query.page) || 1;
         const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
-        // console.log(req.query)
-        const seaarch = req.query.search || '';
-        // console.log('Search query:', seaarch);
-
+        const search = req.query.search || '';
 
         // Get date filters from params or query
         const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : new Date(0);
@@ -83,14 +80,34 @@ exports.getAllInterventions = async (req, res) => {
             }
         }
 
+        // Flexible search across multiple fields using OR
+        if (search) {
+            const orConditions = [];
 
-        // Search filter by category
-        if (seaarch) {
-            // Find matching categories by name
-            const categories = await Category.find({ name: { $regex: seaarch, $options: 'i' } }).select('_id');
-            // console.log('Categories found:', categories);
+            // interventionId partial match
+            orConditions.push({ interventionId: { $regex: search, $options: 'i' } });
+
+            // note partial match
+            orConditions.push({ note: { $regex: search, $options: 'i' } });
+
+            // status partial match (PAID/UNPAID/etc.)
+            orConditions.push({ status: { $regex: search, $options: 'i' } });
+
+            // category name match -> map to category ids
+            const categories = await Category.find({ name: { $regex: search, $options: 'i' } }).select('_id');
             const categoryIds = categories.map(cat => cat._id);
-            query.category = { $in: categoryIds };
+            if (categoryIds.length > 0) {
+                orConditions.push({ category: { $in: categoryIds } });
+            }
+
+            // numeric search for price equality if search is a number
+            const asNumber = Number(search);
+            if (!Number.isNaN(asNumber) && Number.isFinite(asNumber)) {
+                orConditions.push({ price: asNumber });
+            }
+
+            // Attach OR conditions while preserving existing AND filters (user/date)
+            query.$or = orConditions;
         }
 
         // Get total count with applied filters
@@ -373,7 +390,7 @@ exports.downloadInterventionPDF = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Intervention not found' });
       }
   
-      singleDocToPDF.generateInterventionPDF(intervention, res); // ✅ Directly streams PDF
+      await singleDocToPDF.generateInterventionPDF(intervention, res); // stream PDF and await completion
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

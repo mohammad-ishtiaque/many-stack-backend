@@ -303,7 +303,7 @@ exports.downloadInvoice = async (req, res) => {
         return res.status(404).json({ success: false, message: 'Invoice not found' });
       }
   
-      generateInvoicePDF(invoice, res); // 🔥 This will stream PDF directly to browser
+      await generateInvoicePDF(invoice, res); // stream PDF and await completion
     } catch (error) {
       console.error('Invoice download error:', error.message);
       res.status(500).json({ success: false, message: error.message });

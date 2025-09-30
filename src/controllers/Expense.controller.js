@@ -75,15 +75,26 @@ exports.getAllExpenses = async (req, res) => {
             }
         }
 
-        // Search filter by catagory
+        // Flexible search: match by name/category/note (regex) or exact price if numeric
         if (search) {
-            query.expenseCategory = { $regex: search, $options: 'i' };
+            const orConditions = [
+                { expenseName: { $regex: search, $options: 'i' } },
+                { expenseCategory: { $regex: search, $options: 'i' } }
+            ];
+            const asNumber = Number(search);
+            if (!Number.isNaN(asNumber) && Number.isFinite(asNumber)) {
+                orConditions.push({ price: asNumber });
+            }
+            query.$or = orConditions;
         }
 
-        // Get total count with applied filters
+        // Get total count and total expense with applied filters
         const totalCount = await Expense.countDocuments(query);
-        const ex = await Expense.find()
-        const totalExpense = ex.reduce((sum, exp) => sum + (exp.price || 0), 0);
+        const totalAgg = await Expense.aggregate([
+            { $match: query },
+            { $group: { _id: null, sum: { $sum: { $ifNull: ['$price', 0] } } } }
+        ]);
+        const totalExpense = (totalAgg[0]?.sum) || 0;
 
         // Get filtered and paginated expenses
         const expenses = await Expense.find(query)
@@ -259,7 +270,7 @@ exports.downloadSingleExpensePDF = async (req, res) => {
             });
         }
 
-        singleDocToPDF.generateExpensePDF(expense, res); // Directly streams PDF
+        await singleDocToPDF.generateExpensePDF(expense, res); // stream PDF and await completion
     } catch (error) {
         res.status(500).json({
             success: false,

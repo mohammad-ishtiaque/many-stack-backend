@@ -17,8 +17,10 @@ const tempUserSchema = new mongoose.Schema({
         streetName: String,
         city: String,
         postalCode: String,
-        country: String
+        country: String,
+        countryCode: String
     },
+    currency: String,
     gender: String,
     role: String,
     verificationCode: String,

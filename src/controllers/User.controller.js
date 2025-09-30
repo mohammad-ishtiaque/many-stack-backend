@@ -25,14 +25,18 @@ exports.getUser = async (req, res) => {
         // Get user from database
         let id = decoded.user.id;
         // console.log(id)
-        const user = await User.findById(id).select('-password')
-        if (!user) {
+        const userDoc = await User.findById(id).select('-password')
+        if (!userDoc) {
             return res.status(404).json({ 
                 success: false,
                 message: 'User not found'
             });
         }
-
+        // Ensure countryCode is surfaced even if stored under address in older data
+        const user = userDoc.toObject();
+        if (!user.countryCode && user.address && user.address.countryCode) {
+            user.countryCode = user.address.countryCode;
+        }
 
         res.status(200).json({
             success: true,
@@ -54,71 +58,52 @@ exports.getUser = async (req, res) => {
     }
 };
 
-// Update user profile
+// Update user profile - only allowed fields, no password
 exports.updateUser = async (req, res) => {
     try {
-        // Get token from header
-        const token = req.header('Authorization')?.replace('Bearer ', '');
-        
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                message: 'No token, authorization denied'
-            });
+        const userId = req.user && req.user.id;
+        if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const allowedFields = [
+            'firstName', 'lastName', 'contact', 'nSiren', 'address', 
+            'currency', 'gender', 'profilePicture', 'businessLogo'
+        ];
+
+        // Filter only allowed fields
+        const updateData = {};
+        Object.keys(req.body || {}).forEach(key => {
+            if (allowedFields.includes(key)) {
+                updateData[key] = req.body[key];
+            }
+        });
+
+        // Handle gender enum validation - convert to uppercase
+        if (updateData.gender) {
+            updateData.gender = updateData.gender.toUpperCase();
+            if (!['MALE', 'FEMALE', 'OTHER'].includes(updateData.gender)) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Gender must be MALE, FEMALE, or OTHER' 
+                });
+            }
         }
 
-        // Verify token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        let id = decoded.user.id;
-        // Update user
-        const user = await User.findByIdAndUpdate(
-            id,
-            {
-                $set: {
-                    firstName: req.body.firstName,
-                    lastName: req.body.lastName,
-                    contact: req.body.contact,
-                    nSiren: req.body.nSiren,
-                    address: {
-                        streetNo: req.body.address.streetNo,
-                        streetName: req.body.address.streetName,
-                        city: req.body.address.city,
-                        postalCode: req.body.address.postalCode,
-                        country: req.body.address.country
-                    },
-                    gender: req.body.gender,
-                    countryCode: req.body.countryCode,
-                    currency: req.body.currency
-                }
-            },
+        if (Object.keys(updateData).length === 0) {
+            const user = await User.findById(userId).select('-password');
+            return res.status(200).json({ success: true, data: user, message: 'No valid fields to update' });
+        }
+
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { $set: updateData },
             { new: true, runValidators: true }
         ).select('-password');
 
-        // console.log(req.body.address.streetNo);
+        if (!updatedUser) return res.status(404).json({ success: false, message: 'User not found' });
 
-        if (!user) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            data: user,
-            message: 'Profile updated successfully'
-        });
+        res.status(200).json({ success: true, data: updatedUser, message: 'Profile updated successfully' });
     } catch (err) {
-        if (err.name === 'JsonWebTokenError') {
-            return res.status(401).json({
-                success: false,
-                message: 'Invalid token'
-            });
-        }
-        res.status(500).json({
-            success: false,
-            message: err.message
-        });
+        res.status(500).json({ success: false, message: err.message });
     }
 };
 
