@@ -26,9 +26,9 @@ exports.getHomePageData = async (req, res) => {
 
             return {
                 month,
-                income: monthIncome,
-                expenses: monthExpense,
-                profit: monthIncome - monthExpense
+                income: monthIncome.toFixed(2),
+                expenses: monthExpense.toFixed(2),
+                profit: (monthIncome - monthExpense).toFixed(2)
             };
         });
 
@@ -56,20 +56,20 @@ exports.getHomePageData = async (req, res) => {
         res.status(200).json({
             success: true,
             data: {
-                totalProfit,
-                profitChange: `${profitChange}%`,
+                totalProfit: totalProfit ? totalProfit.toFixed(2) : '0',
+                profitChange: profitChange ? `${profitChange}%` : '0%',
                 totalInterventions: interventions.length,
                 totalExpenses: expenses.length,
-                totalExpensesInPrice: totalExpenseAmount,
-                totalInterventionsInPrice: totalIncomeAmount,
-                totalIncome: totalIncomeAmount,
-                incomeChange: `${incomeChange}%`,
-                expenseChange: `${expenseChange}%`,
+                totalExpensesInPrice: totalExpenseAmount ? totalExpenseAmount.toFixed(2) : '0',
+                totalInterventionsInPrice: totalIncomeAmount ? totalIncomeAmount.toFixed(2) : '0',
+                totalIncome: totalIncomeAmount ? totalIncomeAmount.toFixed(2) : '0',
+                incomeChange: incomeChange ? `${incomeChange}%` : '0%',
+                expenseChange: expenseChange ? `${expenseChange}%` : '0%',
                 interventionChange: interventionPercentage.toFixed(1) + '%',
                 monthlyData,
                 todayHighlights: {
                     totalInterventions: todayInterventions.length,
-                    totalPrice: todayTotalPrice
+                    totalPrice: todayTotalPrice ? todayTotalPrice.toFixed(2) : '0'  
                 }
             }
         });
