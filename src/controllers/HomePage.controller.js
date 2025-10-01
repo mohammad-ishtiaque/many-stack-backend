@@ -104,7 +104,16 @@ exports.getHomePageData = async (req, res) => {
                 todayHighlights: {
                     totalInterventions: todayInterventions.length,
                     totalPrice: todayTotalPrice
-                }
+                },
+                currentMonthData,
+                currentMonthPercentageChange,
+                currentMonthTotalInterventions,
+                currentMonthTotalExpenses,
+                currentMonthTotalIncome,
+                currentMonthTotalProfit,
+                previousMonthInterventions,
+                currentMonthPercentageChange
+
             }
         });
 

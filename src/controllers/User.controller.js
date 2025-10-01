@@ -14,7 +14,7 @@ exports.getUser = async (req, res) => {
         if (!token) {
             return res.status(401).json({
                 success: false,
-                message: 'No token, authorization denied'
+                message: 'non autorisé' //unauthorized
             });
         }
 
@@ -29,7 +29,7 @@ exports.getUser = async (req, res) => {
         if (!userDoc) {
             return res.status(404).json({ 
                 success: false,
-                message: 'User not found'
+                message: 'Utilisateur non trouvé' //User not found
             });
         }
         // Ensure countryCode is surfaced even if stored under address in older data
@@ -42,13 +42,13 @@ exports.getUser = async (req, res) => {
             success: true,
             data: user,
             showSubscription: true,
-            message: 'Profile retrieved successfully'
+            message: 'Profil récupéré avec succès' //Profile retrieved successfully
         });
     } catch (err) {
         if (err.name === 'JsonWebTokenError') {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid token'
+                message: 'Invalid token' //Invalid token
             });
         }
         res.status(500).json({
@@ -62,7 +62,7 @@ exports.getUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
     try {
         const userId = req.user && req.user.id;
-        if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+        if (!userId) return res.status(401).json({ success: false, message: 'non autorisé' });
 
         const allowedFields = [
             'firstName', 'lastName', 'contact', 'nSiren', 'address', 
@@ -90,7 +90,7 @@ exports.updateUser = async (req, res) => {
 
         if (Object.keys(updateData).length === 0) {
             const user = await User.findById(userId).select('-password');
-            return res.status(200).json({ success: true, data: user, message: 'No valid fields to update' });
+            return res.status(200).json({ success: true, data: user, message: 'Aucun champ valide à mettre à jour' });
         }
 
         const updatedUser = await User.findByIdAndUpdate(
@@ -99,9 +99,9 @@ exports.updateUser = async (req, res) => {
             { new: true, runValidators: true }
         ).select('-password');
 
-        if (!updatedUser) return res.status(404).json({ success: false, message: 'User not found' });
+        if (!updatedUser) return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
 
-        res.status(200).json({ success: true, data: updatedUser, message: 'Profile updated successfully' });
+        res.status(200).json({ success: true, data: updatedUser, message: 'Profil mis à jour avec succès' });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -119,7 +119,7 @@ exports.changePassword = async (req, res) => {
         if (!currentPassword || !newPassword || !confirmPassword) {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide all required fields'
+                message: 'Veuillez fournir tous les champs obligatoires'
             });
         }
 
@@ -127,7 +127,7 @@ exports.changePassword = async (req, res) => {
         if (newPassword !== confirmPassword) {
             return res.status(400).json({
                 success: false,
-                message: 'New password and confirm password do not match'
+                message: 'Le nouveau mot de passe et le mot de passe de confirmation ne correspondent pas' //The new password and confirmation password do not match
             });
         }
 
@@ -135,7 +135,7 @@ exports.changePassword = async (req, res) => {
         if (currentPassword === newPassword) {
             return res.status(400).json({
                 success: false,
-                message: 'New password must be different from current password'
+                message: 'Le nouveau mot de passe doit être différent du mot de passe actuel' //New password must be different from current password
             });
         }
 
@@ -143,7 +143,7 @@ exports.changePassword = async (req, res) => {
         if (newPassword.length < 6) {
             return res.status(400).json({
                 success: false,
-                message: 'Password must be at least 6 characters long'
+                message: 'Le mot de passe doit contenir au moins 6 caractères' //Password must be at least 6 characters long
             });
         }
 
@@ -153,7 +153,7 @@ exports.changePassword = async (req, res) => {
         if (!isMatch) {
             return res.status(401).json({
                 success: false,
-                message: 'Current password is incorrect'
+                message: 'Le mot de passe actuel est incorrect' //Current password is incorrect
             });
         }
 
@@ -167,7 +167,7 @@ exports.changePassword = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Password updated successfully'
+            message: 'Mot de passe mis à jour avec succès' //Password updated successfully
         });
     } catch (err) {
         res.status(500).json({
@@ -183,7 +183,7 @@ exports.uploadBusinessLogo = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
                 success: false,
-                message: 'No file uploaded'
+                message: 'Aucun fichier téléchargé' //No file uploaded
             });
         }
 
@@ -203,7 +203,7 @@ exports.uploadBusinessLogo = async (req, res) => {
             data: {
                 businessLogo: user.businessLogo
             },
-            message: 'Business logo uploaded successfully'
+            message: 'Logo de l\'entreprise téléchargé avec succès' //Business logo uploaded successfully
         });
     } catch (err) {
         // Delete uploaded file if error occurs
@@ -225,7 +225,7 @@ exports.uploadProfilePicture = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
                 success: false,
-                message: 'No file uploaded'
+                message: 'Aucun fichier téléchargé' //No file uploaded
             });
         }
 
@@ -240,7 +240,7 @@ exports.uploadProfilePicture = async (req, res) => {
             data: {
                 profilePicture: user.profilePicture
             },
-            message: 'Profile picture uploaded successfully'
+            message: 'Photo de profil téléchargée avec succès' //Profile picture uploaded successfully
         });
     } catch (err) {
         res.status(500).json({
@@ -257,7 +257,7 @@ exports.updateProfilePicture = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
                 success: false,
-                message: 'No file uploaded'
+                message: 'Aucun fichier téléchargé' //No file uploaded
             });
         }
 
@@ -277,7 +277,7 @@ exports.updateProfilePicture = async (req, res) => {
             data: {
                 profilePicture: user.profilePicture
             },
-            message: 'Profile picture updated successfully'
+            message: 'Photo de profil mise à jour avec succès' //Profile picture updated successfully
         });
     } catch (err) {
         // Delete uploaded file if error occurs
@@ -302,7 +302,7 @@ exports.getTheSubscription = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: 'Utilisateur non trouvé' //User not found
             });
         }
 
@@ -316,7 +316,7 @@ exports.getTheSubscription = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Subscription retrieved successfully',
+            message: 'Abonnement récupéré avec succès', //Subscription retrieved successfully
             subscription: fullSubscription
 
         });
@@ -335,14 +335,14 @@ exports.deleteUser = async (req, res) => {
         if (!user) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: 'Utilisateur non trouvé' //User not found
             });
         }
 
         // Get email subject and body from request body or use defaults
-        const emailSubject = req.body.emailSubject || 'Account Deletion Confirmation';
+        const emailSubject = req.body.emailSubject || 'Confirmation de suppression du compte';
         const emailBody = req.body.emailBody || 
-            `Hello ${user.firstName} ${user.lastName},\n\nYour account has been deleted successfully.`;
+            `Hello ${user.firstName} ${user.lastName},\n\nVotre compte a été supprimé avec succès.`;
 
         // Send email to user using email service
         await emailService.sendEmail(user.email, {
@@ -352,7 +352,7 @@ exports.deleteUser = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'User deleted successfully',
+            message: 'Utilisateur supprimé avec succès', //User deleted successfully
             emailSent: true
         });
     } catch (err) {
