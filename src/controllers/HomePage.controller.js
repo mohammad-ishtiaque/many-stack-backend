@@ -26,9 +26,9 @@ exports.getHomePageData = async (req, res) => {
 
             return {
                 month,
-                income: monthIncome.toFixed(2),
-                expenses: monthExpense.toFixed(2),
-                profit: (monthIncome - monthExpense).toFixed(2)
+                income: monthIncome !== 0 ? monthIncome.toFixed(2) : 0,
+                expenses: monthExpense !== 0 ? monthExpense.toFixed(2) : 0,
+                profit: (monthIncome - monthExpense !== 0 ? (monthIncome - monthExpense).toFixed(2) : 0)
             };
         });
 
@@ -66,15 +66,17 @@ exports.getHomePageData = async (req, res) => {
         const currentMonthData = {
             income: currentMonthInterventions.reduce((sum, int) => sum + int.price, 0),
             expenses: currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0),
-            profit: currentMonthInterventions.reduce((sum, int) => sum + int.price, 0) - 
-                    currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0)
+            profit: (currentMonthInterventions.reduce((sum, int) => sum + int.price, 0) - 
+                    currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0)) !== 0 ? 
+                    (currentMonthInterventions.reduce((sum, int) => sum + int.price, 0) - 
+                    currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0)).toFixed(2) : 0
         };
 
         // Calculate current month statistics
         const currentMonthTotalInterventions = currentMonthInterventions.length;
         const currentMonthTotalExpenses = currentMonthExpensesList.length;
-        const currentMonthTotalIncome = currentMonthData.income;
-        const currentMonthTotalProfit = currentMonthData.profit;
+        const currentMonthTotalIncome = currentMonthData.income !== 0 ? currentMonthData.income.toFixed(2) : 0;
+        const currentMonthTotalProfit = currentMonthData.profit !== 0 ? currentMonthData.profit.toFixed(2) : 0;
 
         // Calculate percentage changes for current month
         const previousMonth = new Date();
@@ -90,20 +92,20 @@ exports.getHomePageData = async (req, res) => {
         res.status(200).json({
             success: true,
             data: {
-                totalProfit,
+                totalProfit: totalProfit !== 0 ? totalProfit.toFixed(2) : 0,
                 profitChange: `${profitChange}%`,
                 totalInterventions: interventions.length,
                 totalExpenses: expenses.length,
-                totalExpensesInPrice: totalExpenseAmount,
-                totalInterventionsInPrice: totalIncomeAmount,
-                totalIncome: totalIncomeAmount,
+                totalExpensesInPrice: totalExpenseAmount !== 0 ? totalExpenseAmount.toFixed(2) : 0,
+                totalInterventionsInPrice: totalIncomeAmount !== 0 ? totalIncomeAmount.toFixed(2) : 0,
+                totalIncome: totalIncomeAmount !== 0 ? totalIncomeAmount.toFixed(2) : 0,
                 incomeChange: `${incomeChange}%`,
                 expenseChange: `${expenseChange}%`,
                 interventionChange: interventionPercentage.toFixed(1) + '%',
                 monthlyData,
                 todayHighlights: {
                     totalInterventions: todayInterventions.length,
-                    totalPrice: todayTotalPrice
+                    totalPrice: todayTotalPrice !== 0 ? todayTotalPrice.toFixed(2) : 0
                 },
                 currentMonthData,
                 currentMonthPercentageChange,
