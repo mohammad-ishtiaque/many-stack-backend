@@ -24,7 +24,7 @@ exports.createCategory = async (req, res) => {
         if (price < 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Price cannot be negative'
+                message: 'Le prix ne peut pas être négatif' //Price cannot be negative
             });
         }
 
@@ -48,7 +48,7 @@ exports.createCategory = async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
-                message: 'Category with this name already exists'
+                message: 'Une catégorie avec ce nom existe déjà' //Category with this name already exists       
             });
         }
         res.status(500).json({
@@ -93,7 +93,7 @@ exports.updateCategory = async (req, res) => {
         if (!existingCategory) {
             return res.status(404).json({
                 success: false,
-                message: 'Category not found or you do not have permission to update it'
+                message: 'Category not found or you do not have permission to update it' //Category not found or you do not have permission to update it
             });
         }
 
