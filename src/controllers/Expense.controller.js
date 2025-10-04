@@ -10,7 +10,7 @@ exports.createExpense = async (req, res) => {
         const userId = req.user.id || req.user._id;
 
         // Get location name once for all images
-        let location = 'Unknown Location';
+        let location = 'Emplacement inconnu'; //Unknown Location
         if (latitude && longitude) {
             location = await getLocationName(latitude, longitude);
         }
@@ -35,13 +35,13 @@ exports.createExpense = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Expense created successfully',
+            message: 'Dépense créée avec succès', //Expense created successfully
             expense,
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message,
+            message: error.message, //Error message
         });
     }
 };
@@ -109,7 +109,7 @@ exports.getAllExpenses = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 expenses: [],
-                message: 'No expenses found for the given filters.',
+                message: 'Aucune dépense trouvée pour les filtres donnés.', //No expenses found for the given filters.
                 pagination: {
                     currentPage: page,
                     totalPages: 0,
@@ -157,7 +157,7 @@ exports.getExpenseById = async (req, res) => {
         if (!expense) {
             return res.status(404).json({
                 success: false,
-                message: 'Expense not found',
+                message: 'Dépense non trouvée', //Expense not found     
             });
         }
 
@@ -184,7 +184,7 @@ exports.updateExpense = async (req, res) => {
         if (!existingExpense) {
             return res.status(404).json({
                 success: false,
-                message: 'Expense not found',
+                message: 'Dépense non trouvée', //Expense not found     
             });
         }
 
@@ -217,7 +217,7 @@ exports.updateExpense = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Expense updated successfully',
+            message: 'Dépense mise à jour avec succès', //Expense updated successfully
             expense,
         });
 
@@ -247,7 +247,7 @@ exports.deleteExpense = async (req, res) => {
         await Expense.findByIdAndDelete(id);
         res.status(200).json({
             success: true,
-            message: 'Expense deleted successfully',
+            message: 'Dépense supprimée avec succès', //Expense deleted successfully
         });
     } catch (error) {
         res.status(500).json({
@@ -266,7 +266,7 @@ exports.downloadSingleExpensePDF = async (req, res) => {
         if (!expense) {
             return res.status(404).json({
                 success: false,
-                message: 'Expense not found'
+                message: 'Dépense non trouvée', //Expense not found
             });
         }
 

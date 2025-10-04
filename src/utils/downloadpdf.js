@@ -115,7 +115,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(22)
         .font('Helvetica-Bold')
-        .text('INVOICE', 0, 30, { align: 'center' })
+        .text('FACTURE', 0, 30, { align: 'center' })
         .moveDown(50);
 
     // Try to render business logo from S3/public URL or local fallback
@@ -147,15 +147,15 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text('Customer Information', { underline: true })
+        .text('Informations du client', { underline: true })
         .moveDown(0.5)
         .font('Helvetica')
         .fontSize(10)
-        .text(`Name     : ${invoice.name}`)
+        .text(`Nom     : ${invoice.name}`)
         .text(`Email    : ${invoice.email}`)
-        .text(`Phone    : ${invoice.phone}`)
+        .text(`Téléphone    : ${invoice.phone}`)
         .text(`SIREN    : ${invoice.nSiren}`)
-        .text(`Address  : ${streetNo} ${streetName}, ${postalCode} ${city}, ${country}`);
+        .text(`Adresse  : ${streetNo} ${streetName}, ${postalCode} ${city}, ${country}`);
 
     doc.moveDown(1.5);
 
@@ -164,10 +164,10 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(11)
         .font('Helvetica-Bold')
-        .text('No.', 50, tableTop)
+        .text('Numéro', 50, tableTop)
         .text('Service', 100, tableTop)
-        .text('Qty', 320, tableTop, { width: 50, align: 'right' })
-        .text('Price', 400, tableTop, { width: 100, align: 'right' });
+        .text('Quantité', 320, tableTop, { width: 50, align: 'right' })
+        .text('Prix', 400, tableTop, { width: 100, align: 'right' });
 
     doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
@@ -199,7 +199,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(12)
         .fillColor(invoice.status === 'PAID' ? 'green' : 'red')
-        .text(`Status: ${invoice.status}`, 400, y + 30, { width: 100, align: 'right' });
+        .text(`Statut: ${invoice.status}`, 400, y + 30, { width: 100, align: 'right' });
 
     // Finalize when the stream is ready
     return new Promise((resolve, reject) => {
@@ -223,7 +223,7 @@ exports.generateInterventionPDF = async (intervention, res) => {
     doc
         .fontSize(22)
         .font('Helvetica-Bold')
-        .text('INTERVENTION REPORT', { align: 'center' })
+        .text('RAPPORT D\'INTERVENTION', { align: 'center' })
         .moveDown(2);
 
     doc
@@ -240,10 +240,10 @@ exports.generateInterventionPDF = async (intervention, res) => {
         .text(`Date`, { continued: true })
         .text(`         : ${new Date(intervention.createdAt).toLocaleString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}`, { align: 'right' })
         .moveDown(0.5)
-        .text(`Category`, { continued: true })
+        .text(`Catégorie`, { continued: true })
         .text(`     : ${intervention.category?.name || 'N/A'}`, { align: 'right' })
         .moveDown(0.5)
-        .text(`Price`, { continued: true })
+        .text(`Prix`, { continued: true })
         .text(`       : ${intervention.price.toFixed(2)} $`, { align: 'right' })
         .moveDown(0.5)
         .text(`Note`, { continued: true })
@@ -255,7 +255,7 @@ exports.generateInterventionPDF = async (intervention, res) => {
         .font('Helvetica-Bold')
         .fontSize(14)
         .fillColor(intervention.status === 'PAID' ? 'green' : 'red')
-        .text(`STATUS: ${intervention.status}`, { align: 'right' });
+        .text(`Statut: ${intervention.status}`, { align: 'right' });
 
     // Reset fill color to black for the rest of the document!
     doc.fillColor('black');
@@ -346,13 +346,13 @@ exports.generateExpensePDF = async (expense, res) => {
     doc
         .fontSize(22)
         .font('Helvetica-Bold')
-        .text('EXPENSE REPORT', { align: 'center' })
+        .text('RAPPORT DE DÉPENSES', { align: 'center' })
         .moveDown(2);
 
     doc
         .fontSize(14)
         .font('Helvetica-Bold')
-        .text(`Expense ID: ${expense._id}`, { bold: true })
+        .text(`ID de la dépense: ${expense._id}`, { bold: true })
         .moveDown(1);
 
     doc.moveDown(1);
@@ -363,13 +363,13 @@ exports.generateExpensePDF = async (expense, res) => {
         .text(`Date`, { continued: true })
         .text(`         : ${new Date(expense.createdAt).toLocaleString('en-GB', { year: 'numeric', month: 'long', day: 'numeric' })}`, { align: 'right' })
         .moveDown(0.5)
-        .text(`Expense Name`, { continued: true })
+        .text(`Nom de la dépense`, { continued: true })
         .text(` : ${expense.expenseName || 'N/A'}`, { align: 'right' })
         .moveDown(0.5)
-        .text(`Category`, { continued: true })
+        .text(`Catégorie`, { continued: true })
         .text(`     : ${expense.expenseCategory || 'N/A'}`, { align: 'right' })
         .moveDown(0.5)
-        .text(`Price`, { continued: true })
+        .text(`Prix`, { continued: true })
         .text(`       : ${expense.price.toFixed(2)} $`, { align: 'right' })
         .moveDown(0.5)
         .text(`Note`, { continued: true })
