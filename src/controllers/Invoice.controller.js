@@ -22,7 +22,7 @@ exports.createInvoice = async (req, res) => {
         const userId = req.user.id || req.user._id;
 
         if (!Array.isArray(services) || services.length === 0) {
-            return res.status(400).json({ success: false, message: 'Services must be a non-empty array.' });
+            return res.status(400).json({ success: false, message: 'Les services doivent être un tableau non vide.' });
         }
 
         const invoice = await Invoice.create({
@@ -45,7 +45,7 @@ exports.createInvoice = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Invoice created successfully',
+            message: 'La facture a été créée avec succès',
             invoice,
             user: req.user
         });
@@ -103,7 +103,7 @@ exports.getAllInvoices = async (req, res) => {
                 return res.status(200).json({
                     success: true,
                     invoices: [],
-                    message: 'No invoices found for the given filters.',
+                    message: 'Aucune facture trouvée pour les filtres donnés.',
                     pagination: {
                         currentPage: page,
                         totalPages: 0,
@@ -122,7 +122,7 @@ exports.getAllInvoices = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Invoices retrieved successfully',
+            message: 'Les factures ont été récupérées avec succès',
             invoices,
             pagination: {
                 currentPage: page,
@@ -154,13 +154,13 @@ exports.getInvoiceById = async (req, res) => {
         if (!invoice) {
             return res.status(404).json({
                 success: false,
-                message: 'Invoice not found'
+                message: 'Facture introuvable'
             });
         }
 
         res.status(200).json({
             success: true,
-            message: 'Invoice retrieved successfully',
+            message: 'Facture récupérée avec succès',
             invoice
         });
     } catch (error) {
@@ -211,13 +211,13 @@ exports.updateInvoice = async (req, res) => {
         if (!invoice) {
             return res.status(404).json({
                 success: false,
-                message: 'Invoice not found'
+                message: 'La facture n\'a pas été trouvée'
             });
         }
 
         res.status(200).json({
             success: true,
-            message: 'Invoice updated successfully',
+            message: 'Facture mise à jour avec succès',
             invoice
         });
     } catch (error) {
@@ -236,13 +236,13 @@ exports.deleteInvoice = async (req, res) => {
         if (!invoice) {
             return res.status(404).json({
                 success: false,
-                message: 'Invoice not found'
+                message: 'Facture introuvable'
             });
         }
 
         res.status(200).json({
             success: true,
-            message: 'Invoice deleted successfully'
+            message: 'Facture supprimée avec succès'
         });
     } catch (error) {
         res.status(500).json({
@@ -300,12 +300,12 @@ exports.downloadInvoice = async (req, res) => {
         .populate('user', 'name email phone address nSiren businessLogo');
     
       if (!invoice) {
-        return res.status(404).json({ success: false, message: 'Invoice not found' });
+        return res.status(404).json({ success: false, message: 'Facture introuvable' });
       }
   
       await generateInvoicePDF(invoice, res); // stream PDF and await completion
     } catch (error) {
-      console.error('Invoice download error:', error.message);
+      console.error('Erreur lors du téléchargement de la facture :', error.message);
       res.status(500).json({ success: false, message: error.message });
     }
   };
@@ -318,7 +318,7 @@ exports.paidUnpaid = async (req, res) => {
         const invoice = await Invoice.findById(invoiceId);
         
         if (!invoice) {
-            return res.status(404).json({ message: 'invoice not found' });
+            return res.status(404).json({ message: 'La facture n\'a pas été trouvée' });
         }
 
         // Toggle the status
@@ -328,11 +328,11 @@ exports.paidUnpaid = async (req, res) => {
         await invoice.save();
         
         res.status(200).json({ 
-            message: 'Status updated successfully',
+            message: 'Le statut a été mis à jour avec succès',
             invoice
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating status', error: error.message });
+        res.status(500).json({ message: 'Erreur lors de la mise à jour du statut', error: error.message });
     }
 }
 

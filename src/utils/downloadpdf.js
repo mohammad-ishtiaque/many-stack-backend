@@ -138,8 +138,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
         .text(`${invoice.invoiceId}`, 400, 50, { align: 'right' })
         .moveDown(30)
 
-
-    doc.text(`Date: ${new Date(invoice.date || invoice.data).toLocaleDateString()}`, 400, 70, { align: 'right' });
+    doc.text(`Date: ${new Date(invoice.date || invoice.data).toLocaleDateString('fr-FR')}`, 400, 70, { align: 'right' });
     doc.moveDown(2);
 
     // === Customer Info ===
@@ -182,7 +181,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
             .text(`${index + 1}`, 50, y)
             .text(item.selectedService, 100, y)
             .text(item.quantity.toString(), 320, y, { width: 50, align: 'right' })
-            .text(`${item.price.toFixed(2)} $`, 400, y, { width: 100, align: 'right' });
+            .text(`${item.price.toFixed(2)} €`, 400, y, { width: 100, align: 'right' });
 
         total += item.price;
         y += 20;
@@ -194,7 +193,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .font('Helvetica-Bold')
         .fontSize(12)
-        .text(`Total: ${total.toFixed(2)} $`, 400, y + 10, { width: 100, align: 'right' });
+        .text(`Total (EUR): ${total.toFixed(2)} €`, 400, y + 10, { width: 100, align: 'right' });
 
     doc
         .fontSize(12)
