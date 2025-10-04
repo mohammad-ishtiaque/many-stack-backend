@@ -125,7 +125,7 @@ exports.getAllInterventions = async (req, res) => {
             return res.status(200).json({
                 success: true,
                 interventions: [],
-                message: 'No interventions found for the given filters.',
+                message: 'Aucune intervention trouvée pour les filtres donnés.',
                 pagination: {
                     currentPage: page,
                     totalPages: 0,
@@ -191,7 +191,7 @@ exports.updateIntervention = async (req, res) => {
         if (!existingIntervention) {
             return res.status(404).json({
                 success: false,
-                message: 'Intervention not found'
+                message: 'Intervention introuvable'
             });
         }
 
@@ -246,7 +246,7 @@ exports.deleteIntervention = async (req, res) => {
         const userId = req.user.id || req.user._id;
         if (existingIntervention.user.toString() !== userId) {
             return res.status(403).json({
-                message: 'Not authorized to delete this intervention'
+                message: 'Non autorisé à supprimer cette intervention' //Not authorized to delete this intervention
             });
         }
 
@@ -256,7 +256,7 @@ exports.deleteIntervention = async (req, res) => {
                 try {
                     await deleteFile(image.url);
                 } catch (deleteError) {
-                    console.error(`Error deleting file ${image.url}:`, deleteError);
+                    console.error(`Erreur lors de la suppression du fichier ${image.url} :`, deleteError);
                 }
             }
         }
@@ -264,7 +264,7 @@ exports.deleteIntervention = async (req, res) => {
         await Intervention.findByIdAndDelete(id);
         res.status(200).json({
             success: true,
-            message: 'Intervention deleted successfully'
+            message: 'Intervention supprimée avec succès' //Intervention deleted successfully
         });
     } catch (error) {
         res.status(500).json({
@@ -283,7 +283,7 @@ exports.deleteImage = async (req, res) => {
         if (!intervention) {
             return res.status(404).json({
                 success: false,
-                message: 'Intervention not found'
+                message: 'Intervention introuvable' //Intervention not found
             });
         }
 
@@ -292,7 +292,7 @@ exports.deleteImage = async (req, res) => {
         if (intervention.user.toString() !== userId) {
             return res.status(403).json({
                 success: false,
-                message: 'Not authorized to modify this intervention'
+                message: 'Non autorisé à modifier cette intervention' //Not authorized to modify this intervention
             });
         }
 
@@ -301,7 +301,7 @@ exports.deleteImage = async (req, res) => {
         if (imageIndex === -1) {
             return res.status(404).json({
                 success: false,
-                message: 'Image not found in this intervention'
+                message: 'Image introuvable dans cette intervention' //Image not found in this intervention
             });
         }
 
@@ -318,7 +318,7 @@ exports.deleteImage = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Image deleted successfully',
+            message: 'Image supprimée avec succès', //Image deleted successfully
             intervention
         });
     } catch (error) {
@@ -337,7 +337,7 @@ exports.addImages = async (req, res) => {
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({
                 success: false,
-                message: 'No images provided'
+                message: 'Aucune image fournie' //No images provided    
             });
         }
 
@@ -345,7 +345,7 @@ exports.addImages = async (req, res) => {
         if (!intervention) {
             return res.status(404).json({
                 success: false,
-                message: 'Intervention not found'
+                message: 'Intervention introuvable' //Intervention not found
             });
         }
 
@@ -368,7 +368,7 @@ exports.addImages = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Images added successfully',
+            message: 'Les images ont été ajoutées avec succès', //Les images ont été ajoutées avec succès
             intervention
         });
 
@@ -405,7 +405,7 @@ exports.paidUnpaid = async (req, res) => {
         const intervention = await Intervention.findById(interventionId);
         
         if (!intervention) {
-            return res.status(404).json({ message: 'Intervention not found' });
+            return res.status(404).json({ message: 'Intervention introuvable' });
         }
 
         // Toggle the status
@@ -415,11 +415,11 @@ exports.paidUnpaid = async (req, res) => {
         await intervention.save();
         
         res.status(200).json({ 
-            message: 'Status updated successfully',
+            message: 'Le statut a été mis à jour avec succès',
             intervention
         });
     } catch (error) {
-        res.status(500).json({ message: 'Error updating status', error: error.message });
+        res.status(500).json({ message: 'Erreur lors de la mise à jour du statut', error: error.message });
     }
 }
 
