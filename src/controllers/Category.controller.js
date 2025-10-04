@@ -93,7 +93,7 @@ exports.updateCategory = async (req, res) => {
         if (!existingCategory) {
             return res.status(404).json({
                 success: false,
-                message: 'Category not found or you do not have permission to update it' //Category not found or you do not have permission to update it
+                message: "Catégorie non trouvée ou vous n'avez pas l'autorisation de la mettre à jour" //Category not found or you do not have permission to update it
             });
         }
 
@@ -108,7 +108,7 @@ exports.updateCategory = async (req, res) => {
             if (duplicateCategory) {
                 return res.status(400).json({
                     success: false,
-                    message: 'You already have a category with this name'
+                    message: "Vous avez déjà une catégorie avec ce nom" //You already have a category with this name
                 });
             }
         }
@@ -117,7 +117,7 @@ exports.updateCategory = async (req, res) => {
         if (price !== undefined && price < 0) {
             return res.status(400).json({
                 success: false,
-                message: 'Price cannot be negative'
+                message: "Le prix ne peut pas être négatif" //Price cannot be negative
             });
         }
 
@@ -143,7 +143,7 @@ exports.updateCategory = async (req, res) => {
         if (error.code === 11000) {
             return res.status(400).json({
                 success: false,
-                message: 'Category with this name already exists'
+                message: "Une catégorie avec ce nom existe déjà" //Category with this name already exists
             });
         }
         res.status(500).json({
@@ -164,13 +164,13 @@ exports.deleteCategory = async (req, res) => {
         if (!category) {
             return res.status(404).json({
                 success: false,
-                message: 'Category not found or you do not have permission to delete it'
+                message: "Catégorie non trouvée ou vous n'avez pas l'autorisation de la supprimer" //Category not found or you do not have permission to delete it
             });
         }
 
         res.status(200).json({
             success: true,
-            message: 'Category deleted successfully'
+            message: "Catégorie supprimée avec succès" //Category deleted successfully
         });
     } catch (error) {
         res.status(500).json({
