@@ -10,7 +10,7 @@ exports.createSupport = async (req, res) => {
 
         res.status(201).json({
             success: true,
-            message: 'Support created successfully',
+            message: 'Support créé avec succès',
             support
         });
     } catch (error) {
@@ -26,7 +26,7 @@ exports.getAllSupports = async (req, res) => {
         const supports = await Support.find();
         res.status(200).json({
             success: true,
-            message: 'Supports retrieved successfully',
+            message: 'Supports récupérés avec succès',
             supports
         });
     } catch (error) {
@@ -43,7 +43,7 @@ exports.getSupportById = async (req, res) => {
         const support = await Support.findById(id);
         res.status(200).json({
             success: true,
-            message: 'Support retrieved successfully',
+            message: 'Support récupéré avec succès',
             support
         });
     } catch (error) {
@@ -64,7 +64,7 @@ exports.updateSupport = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Support updated successfully',
+            message: 'Support mis à jour avec succès',
             support
         });
     } catch (error) {
@@ -83,12 +83,12 @@ exports.deleteSupport = async (req, res) => {
         if (!support) {
             return res.status(404).json({
                 success: false,
-                message: 'Support not found'
+                message: 'Support non trouvé'
             });
         }
         res.status(200).json({
             success: true,
-            message: 'Support deleted successfully'
+            message: 'Support supprimé avec succès'
         });
     } catch (error) {
         res.status(500).json({

@@ -11,7 +11,7 @@ exports.createCheckoutSession = async (req, res) => {
         if (!stripe) {
             return res.status(503).json({
                 success: false,
-                message: 'Stripe is not configured. Please add STRIPE_SECRET_KEY to your environment variables.'
+                message: 'Stripe n\'est pas configuré. Veuillez ajouter STRIPE_SECRET_KEY à vos variables d\'environnement.'
             });
         }
 
@@ -23,7 +23,7 @@ exports.createCheckoutSession = async (req, res) => {
         if (!subscription || !subscription.isActive) {
             return res.status(404).json({
                 success: false,
-                message: 'Subscription not found or inactive'
+                message: 'Abonnement non trouvé ou inactif'
             });
         }
 
@@ -80,14 +80,14 @@ exports.createCheckoutSession = async (req, res) => {
             success: true,
             sessionId: session.id,
             url: session.url,
-            message: 'Checkout session created successfully'
+            message: 'Session de paiement créée avec succès'
         });
 
     } catch (error) {
-        console.error('Error creating checkout session:', error);
+        console.error('Erreur lors de la création de la session de paiement :', error);
         res.status(500).json({
             success: false,
-            message: 'Error creating checkout session',
+            message: 'Erreur lors de la création de la session de paiement',
             error: error.message
         });
     }
