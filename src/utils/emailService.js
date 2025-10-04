@@ -22,18 +22,18 @@ class EmailService {
     // Template for OTP email
     generateOTPTemplate(otp, userName = '') {
         return {
-            subject: 'Password Reset Verification Code',
+            subject: 'Code de vérification pour réinitialiser votre mot de passe',
             html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">Password Reset Verification</h2>
+          <h2 style="color: #333;">Code de vérification pour réinitialiser votre mot de passe</h2>
           ${userName ? `<p>Hello ${userName},</p>` : '<p>Hello,</p>'}
-          <p>You have requested to reset your password. Please use the following verification code to proceed:</p>
+          <p>Vous avez demandé à réinitialiser votre mot de passe. Veuillez utiliser le code de vérification suivant pour procéder:</p>
           <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
             ${otp}
           </div>
-          <p>This code will expire in 15 minutes.</p>
-          <p>If you didn't request this password reset, please ignore this email or contact support if you have concerns.</p>
-          <p style="color: #666; margin-top: 20px;">Best regards,<br>Your App Team</p>
+          <p>Ce code expirera dans 15 minutes.</p>
+          <p>Si vous n'avez pas demandé cette réinitialisation de mot de passe, veuillez ignorer ce courriel ou contacter le support si vous avez des préoccupations.</p>
+          <p style="color: #666; margin-top: 20px;">Cordialement,<br>Team Many Stack</p>
         </div>
       `
         };
@@ -52,7 +52,7 @@ class EmailService {
             const info = await this.transporter.sendMail(mailOptions);
             return true;
         } catch (error) {
-            console.error('Error sending email:', error);
+            console.error('Erreur lors de l\'envoi de l\'email:', error);
             throw error;
         }
     }
