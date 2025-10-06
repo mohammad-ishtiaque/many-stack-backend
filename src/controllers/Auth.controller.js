@@ -199,14 +199,14 @@ exports.register = async (req, res) => {
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #333;">Code de vérification</h2>
-            <p>Hi ${firstName} ${lastName},</p>
+            <p>Bonjour ${firstName} ${lastName},</p>
             <p>Veuillez entrer le code de vérification ci-dessous pour terminer votre inscription:</p>
             <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; margin: 20px 0;">
               ${verificationCode}
             </div>
             <p>Ce code expirera dans 15 minutes.</p>
             <p>Si vous n'avez pas demandé cette inscription, veuillez ignorer cet email ou contacter le support si vous avez des préoccupations.</p>
-            <p style="color: #666; margin-top: 20px;">Best regards,<br>Your App Team</p>
+            <p style="color: #666; margin-top: 20px;">Cordialement,<br>L'équipe de votre application</p>
           </div>
         `
       };
