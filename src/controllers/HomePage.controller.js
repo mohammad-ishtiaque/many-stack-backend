@@ -2,124 +2,125 @@ const Intervention = require('../models/Intervention');
 const Expense = require('../models/Expense');
 
 exports.getHomePageData = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+  try {
+    const userId = req.user.id;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        const interventions = await Intervention.find({ user: userId });
-        const expenses = await Expense.find({ user: userId });
+    const interventions = await Intervention.find({ user: userId });
+    const expenses = await Expense.find({ user: userId });
 
-        const totalIncomeAmount = interventions.reduce((sum, int) => sum + int.price, 0);
-        const totalExpenseAmount = expenses.reduce((sum, exp) => sum + exp.price, 0);
-        const totalProfit = totalIncomeAmount - totalExpenseAmount;
+    const totalIncomeAmount = interventions.reduce((total, int) => total + int.price, 0);
+    const totalExpenseAmount = expenses.reduce((total, exp) => total + exp.price, 0);
+    const totalProfit = totalIncomeAmount - totalExpenseAmount;
 
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const monthlyData = months.map((month, monthIndex) => {
-            const monthIncome = interventions
-                .filter(int => new Date(int.createdAt).getMonth() === monthIndex)
-                .reduce((sum, int) => sum + int.price, 0);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlyData = months.map((month, index) => {
+      const startOfMonth = new Date(today.getFullYear(), index, 1);
+      const endOfMonth = new Date(today.getFullYear(), index + 1, 0);
 
-            const monthExpense = expenses
-                .filter(exp => new Date(exp.createdAt).getMonth() === monthIndex)
-                .reduce((sum, exp) => sum + exp.price, 0);
+      const monthIncome = interventions
+        .filter(int => int.createdAt >= startOfMonth && int.createdAt <= endOfMonth)
+        .reduce((total, int) => total + int.price, 0);
 
-            return {
-                month,
-                income: monthIncome !== 0 ? monthIncome.toFixed(2) : 0,
-                expenses: monthExpense !== 0 ? monthExpense.toFixed(2) : 0,
-                profit: (monthIncome - monthExpense !== 0 ? (monthIncome - monthExpense).toFixed(2) : 0)
-            };
-        });
+      const monthExpense = expenses
+        .filter(exp => exp.createdAt >= startOfMonth && exp.createdAt <= endOfMonth)
+        .reduce((total, exp) => total + exp.price, 0);
 
-        const todayInterventions = interventions.filter(
-            int => int.createdAt >= today && int.createdAt < new Date(today.getTime() + 24*60*60*1000)
-        );
-        const todayTotalPrice = todayInterventions.reduce((sum, int) => sum + int.price, 0);
-        const interventionPercentage = interventions.length > 0 
-            ? (todayInterventions.length / interventions.length) * 100 
-            : 0;
+      return {
+        month,
+        income: monthIncome.toFixed(2),
+        expenses: monthExpense.toFixed(2),
+        profit: (monthIncome - monthExpense).toFixed(2)
+      };
+    });
 
-        // Example: compare this month vs last month
-        const currentMonthIndex = today.getMonth();
-        const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
+    const todayInterventions = interventions.filter(
+      int => int.createdAt >= today && int.createdAt < new Date(today.getTime() + 24 * 60 * 60 * 1000)
+    );
+    const todayTotalPrice = todayInterventions.reduce((total, int) => total + int.price, 0);
+    const interventionPercentage = interventions.length > 0
+      ? (todayInterventions.length / interventions.length) * 100
+      : 0;
 
-        const currentMonthIncome = monthlyData[currentMonthIndex].income;
-        const prevMonthIncome = monthlyData[prevMonthIndex].income;
-        const currentMonthExpenses = monthlyData[currentMonthIndex].expenses;
-        const prevMonthExpenses = monthlyData[prevMonthIndex].expenses;
+    const currentMonthIndex = today.getMonth();
+    const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
 
-        const incomeChange = prevMonthIncome ? ((currentMonthIncome - prevMonthIncome) / prevMonthIncome * 100).toFixed(1) : 0;
-        const expenseChange = prevMonthExpenses ? ((currentMonthExpenses - prevMonthExpenses) / prevMonthExpenses * 100).toFixed(1) : 0;
-        const profitChange = prevMonthIncome || prevMonthExpenses
-            ? (((currentMonthIncome - currentMonthExpenses) - (prevMonthIncome - prevMonthExpenses)) / (prevMonthIncome - prevMonthExpenses) * 100).toFixed(1)
-            : 0;
+    const currentMonthIncome = monthlyData[currentMonthIndex].income;
+    const prevMonthIncome = monthlyData[prevMonthIndex].income;
+    const currentMonthExpenses = monthlyData[currentMonthIndex].expenses;
+    const prevMonthExpenses = monthlyData[prevMonthIndex].expenses;
 
-        // Get current month data separately (reuse currentMonthIndex defined above)
-        const currentMonthInterventions = interventions.filter(int => 
-            new Date(int.createdAt).getMonth() === currentMonthIndex
-        );
-        const currentMonthExpensesList = expenses.filter(exp => 
-            new Date(exp.createdAt).getMonth() === currentMonthIndex
-        );
+    const incomeChange = prevMonthIncome
+      ? ((currentMonthIncome - prevMonthIncome) / prevMonthIncome * 100).toFixed(1)
+      : 0;
+    const expenseChange = prevMonthExpenses
+      ? ((currentMonthExpenses - prevMonthExpenses) / prevMonthExpenses * 100).toFixed(1)
+      : 0;
+    const profitChange = prevMonthIncome || prevMonthExpenses
+      ? (((currentMonthIncome - currentMonthExpenses) - (prevMonthIncome - prevMonthExpenses)) / (prevMonthIncome - prevMonthExpenses) * 100).toFixed(1)
+      : 0;
 
-        const currentMonthData = {
-            income: currentMonthInterventions.reduce((sum, int) => sum + int.price, 0),
-            expenses: currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0),
-            profit: (currentMonthInterventions.reduce((sum, int) => sum + int.price, 0) - 
-                    currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0)) !== 0 ? 
-                    (currentMonthInterventions.reduce((sum, int) => sum + int.price, 0) - 
-                    currentMonthExpensesList.reduce((sum, exp) => sum + exp.price, 0)).toFixed(2) : 0
-        };
+    const currentMonthInterventions = interventions.filter(int =>
+      int.createdAt.getMonth() === currentMonthIndex &&
+      int.createdAt.getFullYear() === today.getFullYear()
+    );
+    const currentMonthExpensesList = expenses.filter(exp =>
+      exp.createdAt.getMonth() === currentMonthIndex &&
+      exp.createdAt.getFullYear() === today.getFullYear()
+    );
 
-        // Calculate current month statistics
-        const currentMonthTotalInterventions = currentMonthInterventions.length;
-        const currentMonthTotalExpenses = currentMonthExpensesList.length;
-        const currentMonthTotalIncome = currentMonthData.income !== 0 ? currentMonthData.income.toFixed(2) : 0;
-        const currentMonthTotalProfit = currentMonthData.profit !== 0 ? currentMonthData.profit.toFixed(2) : 0;
+    const currentMonthData = {
+      income: currentMonthInterventions.reduce((total, int) => total + int.price, 0).toFixed(2),
+      expenses: currentMonthExpensesList.reduce((total, exp) => total + exp.price, 0).toFixed(2),
+      profit: (currentMonthInterventions.reduce((total, int) => total + int.price, 0) -
+        currentMonthExpensesList.reduce((total, exp) => total + exp.price, 0)).toFixed(2)
+    };
 
-        // Calculate percentage changes for current month
-        const previousMonth = new Date();
-        previousMonth.setMonth(today.getMonth() - 1);
-        const previousMonthInterventions = interventions.filter(int => 
-            new Date(int.createdAt).getMonth() === previousMonth.getMonth() &&
-            new Date(int.createdAt).getFullYear() === previousMonth.getFullYear()
-        ).length;
+    const currentMonthTotalInterventions = currentMonthInterventions.length;
+    const currentMonthTotalExpenses = currentMonthExpensesList.length;
+    const currentMonthTotalIncome = currentMonthData.income;
+    const currentMonthTotalProfit = currentMonthData.profit;
 
-        const currentMonthPercentageChange = previousMonthInterventions ? 
-            ((currentMonthTotalInterventions - previousMonthInterventions) / previousMonthInterventions * 100).toFixed(1) : 0;
+    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const previousMonthInterventions = interventions.filter(int =>
+      int.createdAt >= previousMonth &&
+      int.createdAt < new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0)
+    ).length;
 
-        res.status(200).json({
-            success: true,
-            data: {
-                totalProfit: totalProfit !== 0 ? totalProfit.toFixed(2) : 0,
-                profitChange: `${profitChange}%`,
-                totalInterventions: interventions.length,
-                totalExpenses: expenses.length,
-                totalExpensesInPrice: totalExpenseAmount !== 0 ? totalExpenseAmount.toFixed(2) : 0,
-                totalInterventionsInPrice: totalIncomeAmount !== 0 ? totalIncomeAmount.toFixed(2) : 0,
-                totalIncome: totalIncomeAmount !== 0 ? totalIncomeAmount.toFixed(2) : 0,
-                incomeChange: `${incomeChange}%`,
-                expenseChange: `${expenseChange}%`,
-                interventionChange: interventionPercentage.toFixed(1) + '%',
-                monthlyData,
-                todayHighlights: {
-                    totalInterventions: todayInterventions.length,
-                    totalPrice: todayTotalPrice !== 0 ? todayTotalPrice.toFixed(2) : 0
-                },
-                currentMonthData,
-                currentMonthPercentageChange,
-                currentMonthTotalInterventions,
-                currentMonthTotalExpenses,
-                currentMonthTotalIncome,
-                currentMonthTotalProfit,
-                previousMonthInterventions,
-                currentMonthPercentageChange
+    const currentMonthPercentageChange = previousMonthInterventions
+      ? ((currentMonthTotalInterventions - previousMonthInterventions) / previousMonthInterventions * 100).toFixed(1)
+      : 0;
 
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
-    }
+    res.status(200).json({
+      success: true,
+      data: {
+        totalProfit: totalProfit.toFixed(2),
+        profitChange: `${profitChange}%`,
+        totalInterventions: interventions.length,
+        totalExpenses: expenses.length,
+        totalExpensesInPrice: totalExpenseAmount.toFixed(2),
+        totalInterventionsInPrice: totalIncomeAmount.toFixed(2),
+        totalIncome: totalIncomeAmount.toFixed(2),
+        incomeChange: `${incomeChange}%`,
+        expenseChange: `${expenseChange}%`,
+        interventionChange: interventionPercentage.toFixed(1) + '%',
+        monthlyData,
+        todayHighlights: {
+          totalInterventions: todayInterventions.length,
+          totalPrice: todayTotalPrice.toFixed(2)
+        },
+        currentMonthData,
+        currentMonthPercentageChange,
+        currentMonthTotalInterventions,
+        currentMonthTotalExpenses,
+        currentMonthTotalIncome,
+        currentMonthTotalProfit,
+        previousMonthInterventions,
+        currentMonthPercentageChange
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
