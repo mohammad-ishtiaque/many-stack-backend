@@ -387,8 +387,8 @@ exports.generateExpensePDF = async (expense, res) => {
             .moveDown(1);
 
         const imagesPerRow = 2;
-        const imageWidth = 200;
-        const imageHeight = 150;
+        const imageWidth = 150;
+        const imageHeight = 100;
         const margin = 50;
         const captionHeight = 35; // Space for caption and date
         let startY = doc.y;
@@ -421,7 +421,7 @@ exports.generateExpensePDF = async (expense, res) => {
                 const x = margin + (j * (imageWidth + 50));
                 const captionY = rowY + imageHeight + 5;
                 doc.font('Helvetica').fontSize(10)
-                    .text(`Image ${index + 1}: ${image.location || 'Unknown Location'}`, x, captionY, { width: imageWidth })
+                    .text(`Image ${index + 1}: ${image?.location || 'Unknown Location'}`, x, captionY, { width: imageWidth })
                     .text(`${new Date(image.createdAt).toLocaleDateString()}`, x, captionY + 15, { width: imageWidth });
             }
             // Move Y for next row
