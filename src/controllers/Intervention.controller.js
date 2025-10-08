@@ -9,7 +9,7 @@ exports.createIntervention = async (req, res) => {
 
     try {
         const userId = req.user.id || req.user._id;
-        const {interventionId, category, price, note, status, latitude, longitude } = req.body;
+        const { interventionId, category, price, note, status, latitude, longitude } = req.body;
 
         // Get location name once for all images
         let location = 'Unknown Location';
@@ -40,6 +40,7 @@ exports.createIntervention = async (req, res) => {
         await intervention.populate('category', 'name');
         res.status(201).json({
             success: true,
+            message: "Intervention créée avec succès",
             intervention
         });
 
@@ -167,7 +168,7 @@ exports.getInterventionById = async (req, res) => {
     try {
         const { id } = req.params;
         const intervention = await Intervention.findById(id)
-        .populate('category', 'name');
+            .populate('category', 'name');
 
         // console.log('Intervention found:', intervention);
         res.status(200).json({
@@ -382,39 +383,39 @@ exports.addImages = async (req, res) => {
 
 exports.downloadInterventionPDF = async (req, res) => {
     try {
-      const intervention = await Intervention.findById(req.params.id)
-        .populate('user', '_id name')           // Optional: populate user name
-        .populate('category', '_id name');      // Optional: populate category name
-  
-      if (!intervention) {
-        return res.status(404).json({ success: false, message: 'Intervention not found' });
-      }
-  
-      await singleDocToPDF.generateInterventionPDF(intervention, res); // stream PDF and await completion
+        const intervention = await Intervention.findById(req.params.id)
+            .populate('user', '_id name')           // Optional: populate user name
+            .populate('category', '_id name');      // Optional: populate category name
+
+        if (!intervention) {
+            return res.status(404).json({ success: false, message: 'Intervention not found' });
+        }
+
+        await singleDocToPDF.generateInterventionPDF(intervention, res); // stream PDF and await completion
     } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: error.message });
     }
-  };
+};
 
 
 exports.paidUnpaid = async (req, res) => {
     try {
         const interventionId = req.params.id;
-        
+
         // Find the intervention
         const intervention = await Intervention.findById(interventionId);
-        
+
         if (!intervention) {
             return res.status(404).json({ message: 'Intervention introuvable' });
         }
 
         // Toggle the status
         intervention.status = intervention.status === 'PAID' ? 'UNPAID' : 'PAID';
-        
+
         // Save the updated intervention
         await intervention.save();
-        
-        res.status(200).json({ 
+
+        res.status(200).json({
             message: 'Le statut a été mis à jour avec succès',
             intervention
         });

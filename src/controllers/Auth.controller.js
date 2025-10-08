@@ -283,13 +283,7 @@ exports.verifyEmail = async (req, res) => {
       role: tempUser.role,
       isEmailVerified: true
     });
-
-
-
-
     await user.save();
-    // console.log(user)
-
     // Delete temporary user
     await TempUser.findOneAndDelete({ email });
 
@@ -299,36 +293,6 @@ exports.verifyEmail = async (req, res) => {
       message: "E-mail vérifié avec succès. Vous pouvez maintenant vous connecter.", //Email verified successfully. You can now log in.
       email: user.email
     });
-
-    // Generate JWT token
-    // const payload = {
-    //   user: {
-    //     id: user.id,
-    //     role: user.role
-    //   }
-    // };
-
-    // jwt.sign(
-    //   payload,
-    //   process.env.JWT_SECRET,
-    //   { expiresIn: '400h' },
-    //   (err, token) => {
-    //     if (err) throw err;
-    //     res.json({
-    //       success: true,
-    //       message: 'Registration completed successfully',
-    //       token,
-    //       user: {
-    //         id: user.id,
-    //         firstName: user.firstName,
-    //         lastName: user.lastName,
-    //         email: user.email,
-    //         role: user.role
-    //       }
-    //     });
-    //   }
-    // );
-
   } catch (err) {
     console.error(err.message);
     res.status(500).json({
