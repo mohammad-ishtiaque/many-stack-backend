@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
+
 // Optional: sharp for WebP/SVG conversion if installed
 let sharp = null;
 try {
@@ -12,6 +13,7 @@ try {
     // sharp not installed; skip conversion
 }
 
+
 const s3Client = new S3Client({
     region: process.env.AWS_REGION,
     credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
@@ -19,6 +21,7 @@ const s3Client = new S3Client({
         secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
     } : undefined,
 });
+
 
 function streamToBuffer(stream) {
     return new Promise((resolve, reject) => {
@@ -103,6 +106,7 @@ async function loadImageInput(src) {
     }
 }
 
+
 exports.generateInvoicePDF = async (invoice, res) => {
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
 
@@ -111,94 +115,143 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc.pipe(res);
     if (typeof res.flushHeaders === 'function') res.flushHeaders();
 
-    // === Header ===
+    // === Header - FACTURE Title ===
     doc
-        .fontSize(22)
+        .fontSize(28)
         .font('Helvetica-Bold')
-        .text('FACTURE', 0, 30, { align: 'center' })
-        .moveDown(50);
+        .text('FACTURE', 400, 30, { align: 'right' });
 
-    // Try to render business logo from S3/public URL or local fallback
-    try {
-        const logoSrcCandidate = invoice?.user?.businessLogo;
-        const localFallback = logoSrcCandidate && !/^https?:\/\//i.test(logoSrcCandidate)
-            ? `uploads/${logoSrcCandidate}`
-            : null;
-        const logoInput = await loadImageInput(logoSrcCandidate || localFallback);
-        if (logoInput) {
-            doc.image(logoInput, 50, 45, { width: 100 });
-        }
-    } catch (_) {
-        // ignore logo failures
-    }
-
-    doc
-        .fontSize(14)
-        .font('Helvetica-Bold')
-        .text(`${invoice.invoiceId}`, 400, 50, { align: 'right' })
-        .moveDown(30)
-
-    doc.text(`Date: ${new Date(invoice.date || invoice.data).toLocaleDateString('fr-FR')}`, 400, 70, { align: 'right' });
-    doc.moveDown(2);
-
-    // === Customer Info ===
-    const { streetNo, streetName, city, postalCode, country } = invoice.address;
+    // === Business Information (Top Right) ===
+    const businessY = 80;
     doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text('Informations du client', { underline: true })
-        .moveDown(0.5)
-        .font('Helvetica')
+        .text(invoice.user?.firstName && invoice.user?.lastName ? 
+            `${invoice.user.firstName} ${invoice.user.lastName}` : 
+            'Nom de l\'entreprise', 400, businessY, { align: 'right' })
         .fontSize(10)
-        .text(`Nom     : ${invoice.name}`)
-        .text(`Email    : ${invoice.email}`)
-        .text(`Téléphone    : ${invoice.phone}`)
-        .text(`SIREN    : ${invoice.nSiren}`)
-        .text(`Adresse  : ${streetNo} ${streetName}, ${postalCode} ${city}, ${country}`);
+        .font('Helvetica')
+        .text(invoice.user?.address?.streetNo && invoice.user?.address?.streetName ? 
+            `${invoice.user.address.streetNo} ${invoice.user.address.streetName}` : 
+            'Adresse de l\'entreprise', 400, businessY + 18, { align: 'right' })
+        .text(invoice.user?.address?.city && invoice.user?.address?.postalCode ? 
+            `${invoice.user.address.postalCode} ${invoice.user.address.city}` : 
+            'Ville, Code postal', 400, businessY + 36, { align: 'right' })
+        .text(invoice.user?.address?.country || 'France', 400, businessY + 54, { align: 'right' })
+        .text(`n° SIREN: ${invoice.user?.nSiren || 'XXXXXXXXXXXXXXX'}`, 400, businessY + 72, { align: 'right' })
+        .text(invoice.user?.email || 'email@example.com', 400, businessY + 90, { align: 'right' });
 
-    doc.moveDown(1.5);
-
-    // === Services Table Header ===
-    const tableTop = doc.y;
+    // === Invoice Details (Top Right) ===
+    const invoiceDetailsY = businessY + 120;
     doc
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .text(`Facture N°: ${invoice.invoiceId}`, 400, invoiceDetailsY, { align: 'right' })
+        .fontSize(10)
+        .font('Helvetica')
+        .text(`Date d'émission: ${new Date(invoice.date || invoice.data).toLocaleDateString('fr-FR', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        })}`, 400, invoiceDetailsY + 20, { align: 'right' })
+        .text(`Date d'échéance: ${new Date(new Date(invoice.date || invoice.data).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        })}`, 400, invoiceDetailsY + 40, { align: 'right' });
+
+    // === Customer Information (Top Left) ===
+    const customerY = 80;
+    doc
+        .fontSize(12)
+        .font('Helvetica-Bold')
+        .text('Facturé à', 50, customerY)
+        .fontSize(10)
+        .font('Helvetica')
+        .text(invoice.name, 50, customerY + 25)
+        .text(`${invoice.address.streetNo} ${invoice.address.streetName}`, 50, customerY + 45)
+        .text(`${invoice.address.postalCode} ${invoice.address.city}`, 50, customerY + 65)
+        .text(invoice.address.country, 50, customerY + 85)
+        .text(`n° SIREN: ${invoice.nSiren}`, 50, customerY + 105);
+
+    // === Services Table ===
+    // Calculate table position to avoid overlap
+    const businessSectionHeight = 200; // Business info + invoice details
+    const customerSectionHeight = 150; // Customer info
+    const tableTop = Math.max(customerY + customerSectionHeight, businessY + businessSectionHeight);
+    
+    // Table header with blue background
+    doc
+        .rect(50, tableTop, 500, 25)
+        .fill('#4A90E2')
         .fontSize(11)
         .font('Helvetica-Bold')
-        .text('Numéro', 50, tableTop)
-        .text('Service', 100, tableTop)
-        .text('Quantité', 320, tableTop, { width: 50, align: 'right' })
-        .text('Prix', 400, tableTop, { width: 100, align: 'right' });
+        .fillColor('white')
+        .text('DESCRIPTION', 60, tableTop + 8)
+        .text('QUANTITÉ', 300, tableTop + 8)
+        .text('PRIX (€)', 380, tableTop + 8)
+        .text('MONTANT (€)', 460, tableTop + 8);
 
-    doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
+    // Reset fill color to black
+    doc.fillColor('black');
 
-    // === Services Table Rows ===
+    // Table rows
     let total = 0;
-    let y = tableTop + 25;
+    let y = tableTop + 30;
 
     invoice.services.forEach((item, index) => {
+        // Alternate row background
+        if (index % 2 === 0) {
+            doc.rect(50, y - 5, 500, 20).fill('#F8F9FA');
+        }
+        
         doc
             .font('Helvetica')
             .fontSize(10)
-            .text(`${index + 1}`, 50, y)
-            .text(item.selectedService, 100, y)
-            .text(item.quantity.toString(), 320, y, { width: 50, align: 'right' })
-            .text(`${item.price.toFixed(2)} €`, 400, y, { width: 100, align: 'right' });
+            .fillColor('black')
+            .text(item.selectedService, 60, y, { width: 200 })
+            .text(item.quantity.toString(), 300, y)
+            .text(item.price.toFixed(2).replace('.', ','), 380, y)
+            .text((item.price * item.quantity).toFixed(2).replace('.', ','), 460, y);
 
-        total += item.price;
-        y += 20;
+        total += item.price * item.quantity;
+        y += 25; // Increased spacing between rows
     });
 
+    // Bottom border
     doc.moveTo(50, y).lineTo(550, y).stroke();
 
-    // === Total and Status ===
+    // === Totals Section ===
+    const totalsY = y + 30; // More space after table
     doc
-        .font('Helvetica-Bold')
         .fontSize(12)
-        .text(`Total (EUR): ${total.toFixed(2)} €`, 400, y + 10, { width: 100, align: 'right' });
+        .font('Helvetica-Bold')
+        .text(`MONTANT TOTAL (EUR):`, 400, totalsY, { align: 'right' })
+        .text(`${total.toFixed(2).replace('.', ',')} €`, 400, totalsY + 20, { align: 'right' });
 
+    // Separator line
+    doc.moveTo(400, totalsY + 40).lineTo(550, totalsY + 40).stroke();
+
+    // Amount to pay
+    doc
+        .fontSize(14)
+        .font('Helvetica-Bold')
+        .text('MONTANT À PAYER (EUR)', 400, totalsY + 55, { align: 'right' })
+        .fontSize(16)
+        .text(`${total.toFixed(2).replace('.', ',')} €`, 400, totalsY + 80, { align: 'right' });
+
+    // === Status and Signature Section ===
+    const statusY = totalsY + 120; // More space before status
     doc
         .fontSize(12)
         .fillColor(invoice.status === 'PAID' ? 'green' : 'red')
-        .text(`Statut: ${invoice.status}`, 400, y + 30, { width: 100, align: 'right' });
+        .text(`Statut: ${invoice.status === 'PAID' ? 'PAYÉ' : 'NON PAYÉ'}`, 50, statusY);
+
+    // === Signature Section ===
+    doc
+        .fillColor('black')
+        .fontSize(10)
+        .text('Signature:', 50, statusY + 30);
 
     // Finalize when the stream is ready
     return new Promise((resolve, reject) => {
@@ -207,7 +260,6 @@ exports.generateInvoicePDF = async (invoice, res) => {
         doc.end();
     });
 };
-
 
 
 exports.generateInterventionPDF = async (intervention, res) => {
@@ -440,7 +492,6 @@ exports.generateExpensePDF = async (expense, res) => {
         doc.end();
     });
 };
-
 
 
 // .image(`uploads/${invoice.user.businessLogo}`, 50, 45, { width: 100 })
