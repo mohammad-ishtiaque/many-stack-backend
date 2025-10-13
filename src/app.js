@@ -67,6 +67,9 @@ app.get('/success', async (req, res) => {
 app.get('/cancel', (req, res) => {
     res.redirect('/');
 });
+
+
+
 // const os = require('os');
 
 // const totalCpus = os.cpus().length;

@@ -297,8 +297,9 @@ exports.deleteInvoice = async (req, res) => {
 exports.downloadInvoice = async (req, res) => {
     try {
       const invoice = await Invoice.findById(req.params.id)
-        .populate('user', 'name email phone address nSiren businessLogo');
-    
+      .populate('user', 'firstName lastName email phone address nSiren businessLogo');
+        
+    //   console.log(invoice);
       if (!invoice) {
         return res.status(404).json({ success: false, message: 'Facture introuvable' });
       }

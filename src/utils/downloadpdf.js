@@ -146,19 +146,19 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text(`Facture N°: ${invoice.invoiceId}`, 400, invoiceDetailsY, { align: 'right' })
+        .text(`Facture N°: ${invoice.invoiceId}`, 350, invoiceDetailsY, { align: 'right' })
         .fontSize(10)
         .font('Helvetica')
         .text(`Date d'émission: ${new Date(invoice.date || invoice.data).toLocaleDateString('fr-FR', { 
             year: 'numeric', 
             month: 'long', 
             day: 'numeric' 
-        })}`, 400, invoiceDetailsY + 20, { align: 'right' })
+        })}`, 350, invoiceDetailsY + 20, { align: 'right' })
         .text(`Date d'échéance: ${new Date(new Date(invoice.date || invoice.data).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { 
             year: 'numeric', 
             month: 'short', 
             day: 'numeric' 
-        })}`, 400, invoiceDetailsY + 40, { align: 'right' });
+        })}`, 350, invoiceDetailsY + 40, { align: 'right' });
 
     // === Customer Information (Top Left) ===
     const customerY = 80;
@@ -226,7 +226,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text(`MONTANT TOTAL (EUR):`, 400, totalsY, { align: 'right' })
+        .text(`MONTANT TOTAL (EUR):`, 350, totalsY, { align: 'right' })
         .text(`${total.toFixed(2).replace('.', ',')} €`, 400, totalsY + 20, { align: 'right' });
 
     // Separator line
@@ -236,7 +236,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(14)
         .font('Helvetica-Bold')
-        .text('MONTANT À PAYER (EUR)', 400, totalsY + 55, { align: 'right' })
+        .text('MONTANT À PAYER (EUR)', 350, totalsY + 55, { align: 'right' })
         .fontSize(16)
         .text(`${total.toFixed(2).replace('.', ',')} €`, 400, totalsY + 80, { align: 'right' });
 
