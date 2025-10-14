@@ -8,6 +8,31 @@ const startOfDay = (date) => {
   return d;
 };
 
+// Numeric safety helpers
+const toFiniteNumber = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : 0;
+};
+
+const sumPrice = (acc, item) => acc + toFiniteNumber(item?.price);
+
+const safeFixed2 = (value) => {
+  const num = toFiniteNumber(value);
+  return num.toFixed(2);
+};
+
+const safePercentChange = (currentValue, previousValue) => {
+  const currentNum = toFiniteNumber(currentValue);
+  const previousNum = toFiniteNumber(previousValue);
+  if (previousNum === 0) {
+    if (currentNum > 0) return '100.00';
+    if (currentNum < 0) return '-100.00';
+    return '0.00';
+  }
+  const change = ((currentNum - previousNum) / Math.abs(previousNum)) * 100;
+  return safeFixed2(change);
+};
+
 exports.getHomePageData = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -39,62 +64,60 @@ exports.getHomePageData = async (req, res) => {
       }
     });
 
-    const totalIncomeAmount = interventions.reduce((total, int) => total + (int.price || 0), 0);
-    const totalExpenseAmount = expenses.reduce((total, exp) => total + (exp.price || 0), 0);
-    const totalProfit = totalIncomeAmount - totalExpenseAmount;
+    const totalIncomeAmount = interventions.reduce(sumPrice, 0);
+    const totalExpenseAmount = expenses.reduce(sumPrice, 0);
+    const totalProfit = toFiniteNumber(totalIncomeAmount) - toFiniteNumber(totalExpenseAmount);
 
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlyData = months.map((month, index) => {
+    const monthlyDataRaw = months.map((month, index) => {
       const startOfMonth = new Date(today.getFullYear(), index, 1);
       const endOfMonth = new Date(today.getFullYear(), index + 1, 0);
       endOfMonth.setHours(23, 59, 59, 999);
 
       const monthIncome = interventions
         .filter(int => int.createdAt && int.createdAt >= startOfMonth && int.createdAt <= endOfMonth)
-        .reduce((total, int) => total + (int.price || 0), 0);
+        .reduce(sumPrice, 0);
 
       const monthExpense = expenses
         .filter(exp => exp.createdAt && exp.createdAt >= startOfMonth && exp.createdAt <= endOfMonth)
-        .reduce((total, exp) => total + (exp.price || 0), 0);
+        .reduce(sumPrice, 0);
 
       return {
         month,
-        income: monthIncome.toFixed(2),
-        expenses: monthExpense.toFixed(2),
-        profit: (monthIncome - monthExpense).toFixed(2)
+        income: safeFixed2(monthIncome),
+        expenses: safeFixed2(monthExpense),
+        profit: safeFixed2(toFiniteNumber(monthIncome) - toFiniteNumber(monthExpense))
       };
     });
+
+    // Rotate monthly data so current month appears first (default view)
+    const currentMonthIndex = today.getMonth();
+    const monthlyData = [
+      ...monthlyDataRaw.slice(currentMonthIndex),
+      ...monthlyDataRaw.slice(0, currentMonthIndex)
+    ];
 
     const todayInterventions = interventions.filter(
       int => int.createdAt && int.createdAt >= today && int.createdAt < tomorrow
     );
 
-    const todayTotalPrice = todayInterventions.reduce((total, int) => total + (int.price || 0), 0);
+    const todayTotalPrice = todayInterventions.reduce(sumPrice, 0);
     const interventionPercentage = interventions.length > 0
-      ? (todayInterventions.length / interventions.length) * 100
+      ? toFiniteNumber((todayInterventions.length / interventions.length) * 100)
       : 0;
-
-    const currentMonthIndex = today.getMonth();
     const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
 
-    const currentMonthIncome = parseFloat(monthlyData[currentMonthIndex].income) || 0;
-    const prevMonthIncome = parseFloat(monthlyData[prevMonthIndex].income) || 0;
-    const currentMonthExpenses = parseFloat(monthlyData[currentMonthIndex].expenses) || 0;
-    const prevMonthExpenses = parseFloat(monthlyData[prevMonthIndex].expenses) || 0;
+    const currentMonthIncome = toFiniteNumber(monthlyDataRaw[currentMonthIndex].income);
+    const prevMonthIncome = toFiniteNumber(monthlyDataRaw[prevMonthIndex].income);
+    const currentMonthExpenses = toFiniteNumber(monthlyDataRaw[currentMonthIndex].expenses);
+    const prevMonthExpenses = toFiniteNumber(monthlyDataRaw[prevMonthIndex].expenses);
 
-    const incomeChange = prevMonthIncome !== 0
-      ? ((currentMonthIncome - prevMonthIncome) / prevMonthIncome * 100)
-      : (currentMonthIncome > 0 ? 100 : 0);
-      
-    const expenseChange = prevMonthExpenses !== 0
-      ? ((currentMonthExpenses - prevMonthExpenses) / prevMonthExpenses * 100)
-      : (currentMonthExpenses > 0 ? 100 : 0);
-      
-    const prevMonthProfit = (prevMonthIncome - prevMonthExpenses) || 1;
-    const currentMonthProfit = (currentMonthIncome - currentMonthExpenses);
-    const profitChange = prevMonthProfit !== 0
-      ? ((currentMonthProfit - prevMonthProfit) / Math.abs(prevMonthProfit) * 100)
-      : (currentMonthProfit > 0 ? 100 : 0);
+    const incomeChange = safePercentChange(currentMonthIncome, prevMonthIncome);
+    const expenseChange = safePercentChange(currentMonthExpenses, prevMonthExpenses);
+
+    const prevMonthProfit = toFiniteNumber(prevMonthIncome) - toFiniteNumber(prevMonthExpenses);
+    const currentMonthProfit = toFiniteNumber(currentMonthIncome) - toFiniteNumber(currentMonthExpenses);
+    const profitChange = safePercentChange(currentMonthProfit, prevMonthProfit);
 
     const currentMonthInterventions = interventions.filter(int =>
       int.createdAt.getMonth() === currentMonthIndex &&
@@ -106,10 +129,12 @@ exports.getHomePageData = async (req, res) => {
     );
 
     const currentMonthData = {
-      income: currentMonthInterventions.reduce((total, int) => total + (int.price || 0), 0).toFixed(2),
-      expenses: currentMonthExpensesList.reduce((total, exp) => total + (exp.price || 0), 0).toFixed(2),
-      profit: (currentMonthInterventions.reduce((total, int) => total + (int.price || 0), 0) -
-        currentMonthExpensesList.reduce((total, exp) => total + (exp.price || 0), 0)).toFixed(2)
+      income: safeFixed2(currentMonthInterventions.reduce(sumPrice, 0)),
+      expenses: safeFixed2(currentMonthExpensesList.reduce(sumPrice, 0)),
+      profit: safeFixed2(
+        toFiniteNumber(currentMonthInterventions.reduce(sumPrice, 0)) -
+        toFiniteNumber(currentMonthExpensesList.reduce(sumPrice, 0))
+      )
     };
 
     const currentMonthTotalInterventions = currentMonthInterventions.length;
@@ -118,32 +143,32 @@ exports.getHomePageData = async (req, res) => {
     const currentMonthTotalProfit = currentMonthData.profit;
 
     const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    const endOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 1);
     const previousMonthInterventions = interventions.filter(int =>
-      int.createdAt >= previousMonth &&
-      int.createdAt < new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 0)
+      int.createdAt && int.createdAt >= previousMonth && int.createdAt < endOfPreviousMonth
     ).length;
 
     const currentMonthPercentageChange = previousMonthInterventions
-      ? ((currentMonthTotalInterventions - previousMonthInterventions) / previousMonthInterventions * 100).toFixed(1)
-      : 0;
+      ? safeFixed2(((currentMonthTotalInterventions - previousMonthInterventions) / previousMonthInterventions) * 100)
+      : '0.00';
 
     res.status(200).json({
       success: true,
       data: {
-        totalProfit: totalProfit.toFixed(2),
-        profitChange: `${profitChange}%`,
+        totalProfit: safeFixed2(totalProfit),
+        profitChange: `${safeFixed2(profitChange)}%`,
         totalInterventions: interventions.length,
         totalExpenses: expenses.length,
-        totalExpensesInPrice: totalExpenseAmount.toFixed(2),
-        totalInterventionsInPrice: totalIncomeAmount.toFixed(2),
-        totalIncome: totalIncomeAmount.toFixed(2),
-        incomeChange: `${incomeChange}%`,
-        expenseChange: `${expenseChange}%`,
-        interventionChange: interventionPercentage.toFixed(1) + '%',
+        totalExpensesInPrice: safeFixed2(totalExpenseAmount),
+        totalInterventionsInPrice: safeFixed2(totalIncomeAmount),
+        totalIncome: safeFixed2(totalIncomeAmount),
+        incomeChange: `${safeFixed2(incomeChange)}%`,
+        expenseChange: `${safeFixed2(expenseChange)}%`,
+        interventionChange: safeFixed2(interventionPercentage) + '%',
         monthlyData,
         todayHighlights: {
           totalInterventions: todayInterventions.length,
-          totalPrice: todayTotalPrice.toFixed(2)
+          totalPrice: safeFixed2(todayTotalPrice)
         },
         currentMonthData,
         currentMonthPercentageChange,
@@ -151,8 +176,7 @@ exports.getHomePageData = async (req, res) => {
         currentMonthTotalExpenses,
         currentMonthTotalIncome,
         currentMonthTotalProfit,
-        previousMonthInterventions,
-        currentMonthPercentageChange
+        previousMonthInterventions
       }
     });
   } catch (error) {
