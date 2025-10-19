@@ -40,7 +40,10 @@ exports.getHomePageData = async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Fetch data with proper date formatting
+    // Force fresh data fetch - no caching
+    // Add a small delay to ensure any pending database operations are committed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     const interventions = await Intervention.find({ 
       user: userId,
       createdAt: { $exists: true }
@@ -50,6 +53,13 @@ exports.getHomePageData = async (req, res) => {
       user: userId,
       createdAt: { $exists: true }
     }).lean();
+
+    // Debug logging
+    console.log(`Homepage Data Fetch - User: ${userId}`);
+    console.log(`Interventions count: ${interventions.length}`);
+    console.log(`Expenses count: ${expenses.length}`);
+    console.log(`Total intervention amount: ${interventions.reduce(sumPrice, 0)}`);
+    console.log(`Total expense amount: ${expenses.reduce(sumPrice, 0)}`);
 
     // Convert MongoDB dates to JavaScript Date objects
     interventions.forEach(int => {
@@ -154,6 +164,7 @@ exports.getHomePageData = async (req, res) => {
 
     res.status(200).json({
       success: true,
+      timestamp: new Date().toISOString(),
       data: {
         totalProfit: safeFixed2(totalProfit),
         profitChange: `${safeFixed2(profitChange)}%`,
@@ -177,6 +188,40 @@ exports.getHomePageData = async (req, res) => {
         currentMonthTotalIncome,
         currentMonthTotalProfit,
         previousMonthInterventions
+      }
+    });
+  } catch (error) {
+    console.error('Homepage data fetch error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Debug endpoint to check raw data
+exports.getDebugData = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const interventions = await Intervention.find({ user: userId }).lean();
+    const expenses = await Expense.find({ user: userId }).lean();
+    
+    res.status(200).json({
+      success: true,
+      debug: {
+        userId,
+        interventionsCount: interventions.length,
+        expensesCount: expenses.length,
+        interventions: interventions.map(int => ({
+          id: int._id,
+          price: int.price,
+          createdAt: int.createdAt,
+          status: int.status
+        })),
+        expenses: expenses.map(exp => ({
+          id: exp._id,
+          price: exp.price,
+          createdAt: exp.createdAt,
+          expenseName: exp.expenseName
+        }))
       }
     });
   } catch (error) {

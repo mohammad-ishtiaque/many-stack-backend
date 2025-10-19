@@ -227,6 +227,10 @@ exports.updateIntervention = async (req, res) => {
             { new: true }
         );
 
+        // Debug logging
+        console.log(`Intervention updated - ID: ${id}`);
+        console.log(`Updated intervention: ${JSON.stringify(intervention)}`);
+
         res.status(200).json({
             success: true,
             intervention
@@ -263,6 +267,11 @@ exports.deleteIntervention = async (req, res) => {
         }
 
         await Intervention.findByIdAndDelete(id);
+        
+        // // Debug logging
+        // console.log(`Intervention deleted - ID: ${id}, User: ${userId}`);
+        // console.log(`Deleted intervention: ${JSON.stringify(existingIntervention)}`);
+        
         res.status(200).json({
             success: true,
             message: 'Intervention supprimée avec succès' //Intervention deleted successfully
