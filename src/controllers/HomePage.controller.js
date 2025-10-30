@@ -37,6 +37,14 @@ exports.getHomePageData = async (req, res) => {
   try {
     const userId = req.user.id;
     const today = startOfDay(new Date());
+    // Parse query params
+    const queryMonthRaw = (req.query.month || '').toString().trim();
+    const normalizeMonth = (m) => m ? m.slice(0, 3).toLowerCase() : '';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthLookup = months.map(m => m.toLowerCase());
+    const monthFromQueryIndex = monthLookup.indexOf(normalizeMonth(queryMonthRaw));
+    const targetYear = Number(req.query.year) && Number.isFinite(Number(req.query.year)) ? Number(req.query.year) : today.getFullYear();
+    const selectedMonthIndex = monthFromQueryIndex >= 0 ? monthFromQueryIndex : today.getMonth();
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -78,10 +86,9 @@ exports.getHomePageData = async (req, res) => {
     const totalExpenseAmount = expenses.reduce(sumPrice, 0);
     const totalProfit = toFiniteNumber(totalIncomeAmount) - toFiniteNumber(totalExpenseAmount);
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthlyDataRaw = months.map((month, index) => {
-      const startOfMonth = new Date(today.getFullYear(), index, 1);
-      const endOfMonth = new Date(today.getFullYear(), index + 1, 0);
+      const startOfMonth = new Date(targetYear, index, 1);
+      const endOfMonth = new Date(targetYear, index + 1, 0);
       endOfMonth.setHours(23, 59, 59, 999);
 
       const monthIncome = interventions
@@ -100,8 +107,8 @@ exports.getHomePageData = async (req, res) => {
       };
     });
 
-    // Rotate monthly data so current month appears first (default view)
-    const currentMonthIndex = today.getMonth();
+    // Rotate monthly data so selected month appears first (default view)
+    const currentMonthIndex = selectedMonthIndex;
     const monthlyData = [
       ...monthlyDataRaw.slice(currentMonthIndex),
       ...monthlyDataRaw.slice(0, currentMonthIndex)
@@ -130,12 +137,14 @@ exports.getHomePageData = async (req, res) => {
     const profitChange = safePercentChange(currentMonthProfit, prevMonthProfit);
 
     const currentMonthInterventions = interventions.filter(int =>
+      int.createdAt &&
       int.createdAt.getMonth() === currentMonthIndex &&
-      int.createdAt.getFullYear() === today.getFullYear()
+      int.createdAt.getFullYear() === targetYear
     );
     const currentMonthExpensesList = expenses.filter(exp =>
+      exp.createdAt &&
       exp.createdAt.getMonth() === currentMonthIndex &&
-      exp.createdAt.getFullYear() === today.getFullYear()
+      exp.createdAt.getFullYear() === targetYear
     );
 
     const currentMonthData = {
@@ -152,8 +161,8 @@ exports.getHomePageData = async (req, res) => {
     const currentMonthTotalIncome = currentMonthData.income;
     const currentMonthTotalProfit = currentMonthData.profit;
 
-    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-    const endOfPreviousMonth = new Date(previousMonth.getFullYear(), previousMonth.getMonth() + 1, 1);
+    const previousMonth = new Date(targetYear, currentMonthIndex - 1, 1);
+    const endOfPreviousMonth = new Date(targetYear, currentMonthIndex, 1);
     const previousMonthInterventions = interventions.filter(int =>
       int.createdAt && int.createdAt >= previousMonth && int.createdAt < endOfPreviousMonth
     ).length;
@@ -161,6 +170,52 @@ exports.getHomePageData = async (req, res) => {
     const currentMonthPercentageChange = previousMonthInterventions
       ? safeFixed2(((currentMonthTotalInterventions - previousMonthInterventions) / previousMonthInterventions) * 100)
       : '0.00';
+
+    // Build detailed metrics for all months of the selected year
+    const allMonthsData = months.map((m, idx) => {
+      const monthInterventions = interventions.filter(int =>
+        int.createdAt &&
+        int.createdAt.getMonth() === idx &&
+        int.createdAt.getFullYear() === targetYear
+      );
+      const monthExpensesList = expenses.filter(exp =>
+        exp.createdAt &&
+        exp.createdAt.getMonth() === idx &&
+        exp.createdAt.getFullYear() === targetYear
+      );
+
+      const monthIncomeSum = monthInterventions.reduce(sumPrice, 0);
+      const monthExpenseSum = monthExpensesList.reduce(sumPrice, 0);
+      const monthProfitNum = toFiniteNumber(monthIncomeSum) - toFiniteNumber(monthExpenseSum);
+
+      const prevIdx = (idx - 1 + 12) % 12;
+      const prevStart = new Date(targetYear, prevIdx, 1);
+      const prevEnd = new Date(targetYear, idx, 1);
+      const prevInterventionsCount = interventions.filter(int =>
+        int.createdAt && int.createdAt >= prevStart && int.createdAt < prevEnd
+      ).length;
+
+      const monthPercentageChange = prevInterventionsCount
+        ? safeFixed2(((monthInterventions.length - prevInterventionsCount) / prevInterventionsCount) * 100)
+        : '0.00';
+
+      const monthData = {
+        income: safeFixed2(monthIncomeSum),
+        expenses: safeFixed2(monthExpenseSum),
+        profit: safeFixed2(monthProfitNum)
+      };
+
+      return {
+        month: m,
+        data: monthData,
+        percentageChange: monthPercentageChange,
+        totalInterventions: monthInterventions.length,
+        totalExpenses: monthExpensesList.length,
+        totalIncome: safeFixed2(monthIncomeSum),
+        totalProfit: safeFixed2(monthProfitNum),
+        previousMonthInterventions: prevInterventionsCount
+      };
+    });
 
     res.status(200).json({
       success: true,
@@ -187,7 +242,10 @@ exports.getHomePageData = async (req, res) => {
         currentMonthTotalExpenses,
         currentMonthTotalIncome,
         currentMonthTotalProfit,
-        previousMonthInterventions
+        previousMonthInterventions,
+        allMonthsData,
+        selectedMonth: months[currentMonthIndex],
+        selectedYear: targetYear
       }
     });
   } catch (error) {
