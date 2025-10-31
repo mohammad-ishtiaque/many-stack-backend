@@ -37,11 +37,13 @@ exports.getHomePageData = async (req, res) => {
   try {
     const userId = req.user.id;
     const today = startOfDay(new Date());
-    // Parse query params
+    // Parse query params for month and year
     const queryMonthRaw = (req.query.month || '').toString().trim();
     const normalizeMonth = (m) => m ? m.slice(0, 3).toLowerCase() : '';
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthLookup = months.map(m => m.toLowerCase());
+    
+    // Get month index from query or use current month
     const monthFromQueryIndex = monthLookup.indexOf(normalizeMonth(queryMonthRaw));
     const targetYear = Number(req.query.year) && Number.isFinite(Number(req.query.year)) ? Number(req.query.year) : today.getFullYear();
     const selectedMonthIndex = monthFromQueryIndex >= 0 ? monthFromQueryIndex : today.getMonth();
@@ -62,12 +64,7 @@ exports.getHomePageData = async (req, res) => {
       createdAt: { $exists: true }
     }).lean();
 
-    // Debug logging
-    console.log(`Homepage Data Fetch - User: ${userId}`);
-    console.log(`Interventions count: ${interventions.length}`);
-    console.log(`Expenses count: ${expenses.length}`);
-    console.log(`Total intervention amount: ${interventions.reduce(sumPrice, 0)}`);
-    console.log(`Total expense amount: ${expenses.reduce(sumPrice, 0)}`);
+    // Process data for the dashboard
 
     // Convert MongoDB dates to JavaScript Date objects
     interventions.forEach(int => {
@@ -124,14 +121,17 @@ exports.getHomePageData = async (req, res) => {
       : 0;
     const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
 
+    // Get current month and previous month data for calculations
     const currentMonthIncome = toFiniteNumber(monthlyDataRaw[currentMonthIndex].income);
     const prevMonthIncome = toFiniteNumber(monthlyDataRaw[prevMonthIndex].income);
     const currentMonthExpenses = toFiniteNumber(monthlyDataRaw[currentMonthIndex].expenses);
     const prevMonthExpenses = toFiniteNumber(monthlyDataRaw[prevMonthIndex].expenses);
 
+    // Calculate percentage changes between current and previous month
     const incomeChange = safePercentChange(currentMonthIncome, prevMonthIncome);
     const expenseChange = safePercentChange(currentMonthExpenses, prevMonthExpenses);
 
+    // Calculate profit for current and previous month
     const prevMonthProfit = toFiniteNumber(prevMonthIncome) - toFiniteNumber(prevMonthExpenses);
     const currentMonthProfit = toFiniteNumber(currentMonthIncome) - toFiniteNumber(currentMonthExpenses);
     const profitChange = safePercentChange(currentMonthProfit, prevMonthProfit);
@@ -221,16 +221,18 @@ exports.getHomePageData = async (req, res) => {
       success: true,
       timestamp: new Date().toISOString(),
       data: {
-        totalProfit: safeFixed2(totalProfit),
+        totalProfit: safeFixed2(currentMonthTotalProfit),
         profitChange: `${safeFixed2(profitChange)}%`,
-        totalInterventions: interventions.length,
-        totalExpenses: expenses.length,
-        totalExpensesInPrice: safeFixed2(totalExpenseAmount),
-        totalInterventionsInPrice: safeFixed2(totalIncomeAmount),
-        totalIncome: safeFixed2(totalIncomeAmount),
+        totalInterventions: currentMonthTotalInterventions,
+        totalExpenses: currentMonthTotalExpenses,
+        totalExpensesInPrice: safeFixed2(currentMonthData.expenses),
+        totalInterventionsInPrice: safeFixed2(currentMonthData.income),
+        totalIncome: safeFixed2(currentMonthData.income),
         incomeChange: `${safeFixed2(incomeChange)}%`,
         expenseChange: `${safeFixed2(expenseChange)}%`,
-        interventionChange: safeFixed2(interventionPercentage) + '%',
+        interventionChange: `${safeFixed2(currentMonthPercentageChange)}%`,
+        selectedMonth: months[currentMonthIndex],
+        selectedYear: targetYear,
         monthlyData,
         todayHighlights: {
           totalInterventions: todayInterventions.length,
@@ -243,9 +245,7 @@ exports.getHomePageData = async (req, res) => {
         currentMonthTotalIncome,
         currentMonthTotalProfit,
         previousMonthInterventions,
-        allMonthsData,
-        selectedMonth: months[currentMonthIndex],
-        selectedYear: targetYear
+        allMonthsData
       }
     });
   } catch (error) {
