@@ -85,7 +85,6 @@ app.use('/api/intervention', interventionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expense', expenseRoutes);
 app.use('/api/dashboard/subscription', subscriptionRoutes);
-
 app.use('/api/dashboard/allcategory', allcategoryRoutes);
 app.use('/api/dashboard/settings', settingsRoutes);
 app.use('/api/dashboard', makeAdminRoutes);
@@ -93,6 +92,7 @@ app.use('/api/dashboard', userManagementRoutes);
 app.use('/api/dashboard/adminprofile', adminProfileRoutes);
 app.use('/api/home', homePageRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/revenuecat', require('./routes/revenuecat.router'));
 
 // app.use('/api/dashboard', dashboardHomeRoutes);
 // app.use('/api/rv', rvRoutes);
