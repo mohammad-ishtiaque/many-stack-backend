@@ -41,7 +41,7 @@ exports.getUser = async (req, res) => {
         res.status(200).json({
             success: true,
             data: user,
-            showSubscription: true,
+            showSubscription: false,
             message: 'Profil récupéré avec succès' //Profile retrieved successfully
         });
     } catch (err) {

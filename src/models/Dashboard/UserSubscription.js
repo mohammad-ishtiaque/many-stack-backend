@@ -42,7 +42,7 @@ const userSubscriptionSchema = new mongoose.Schema({
     trialEnd: {
         type: Date
     },
-     trialPeriodDays: {
+    trialPeriodDays: {
         type: Number,
         default: 0,
         min: 0
@@ -69,7 +69,7 @@ const userSubscriptionSchema = new mongoose.Schema({
     },
     isActive: {
         type: Boolean,
-        default: true
+        default: false
     }
 }, {
     timestamps: true

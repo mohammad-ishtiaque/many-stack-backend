@@ -77,17 +77,11 @@ exports.login = async (req, res) => {
 
     // 3. Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    
+
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     // 4. Check if blocked
     if (user.isBlocked) return res.status(403).json({ message: 'Account blocked' });
-
-    const allPlans = await Subscription.find({ isActive: true });
-    if (!user.subscription || !user.subscription.isActive) {
-      await assignFreePlanFromSubscriptionList(user, allPlans);
-    }
-
 
     // 5. Generate JWT
     const payload = {
@@ -281,7 +275,11 @@ exports.verifyEmail = async (req, res) => {
       countryCode: tempUser.countryCode,
       gender: tempUser.gender,
       role: tempUser.role,
-      isEmailVerified: true
+      isEmailVerified: true,
+      isSubscribed: false,
+      subscription: {
+        isActive: false
+      }
     });
     await user.save();
     // Delete temporary user
