@@ -7,7 +7,13 @@ exports.handleWebhook = async (req, res) => {
         const { event } = req.body;
         const authHeader = req.headers.authorization;
 
+        console.log('--- RevenueCat Webhook Received ---');
+        console.log('Received Auth Header:', authHeader);
+        const expectedToken = process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN;
+        console.log('Expected Auth Token:', expectedToken ? `${expectedToken.substring(0, 4)}***` : 'UNDEFINED');
+
         if (authHeader !== process.env.REVENUECAT_WEBHOOK_AUTH_TOKEN) {
+            console.warn('RevenueCat Webhook Authorization Failed: Token Mismatch');
             return res.status(401).json({ message: 'Unauthorized' });
         }
 
