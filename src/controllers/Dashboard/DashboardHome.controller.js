@@ -91,7 +91,8 @@ exports.getDashboardCharts = async (req, res) => {
             {
                 $match: {
                     data: { $gte: startDate, $lte: endDate },
-                    status: 'PAID'
+                    status: 'PAID',
+                    services: { $type: 'array' } // Ensure services is an array
                 }
             },
             {
@@ -101,7 +102,12 @@ exports.getDashboardCharts = async (req, res) => {
                             $map: {
                                 input: "$services",
                                 as: "service",
-                                in: { $multiply: ["$$service.price", "$$service.quantity"] }
+                                in: {
+                                    $multiply: [
+                                        { $ifNull: ["$$service.price", 0] },
+                                        { $ifNull: ["$$service.quantity", 0] }
+                                    ]
+                                }
                             }
                         }
                     }
@@ -123,6 +129,7 @@ exports.getDashboardCharts = async (req, res) => {
         res.status(200).json({
             success: true,
             data: {
+                year,
                 months,
                 userGrowth,
                 subscriptionGrowth,
