@@ -18,6 +18,7 @@ const userManagementRoutes = require('./routes/Dashboard/usermanagement.router')
 const homePageRoutes = require('./routes/homepage.router');
 const adminProfileRoutes = require('./routes/Dashboard/adminprofile');
 const dashboardHomeRoutes = require('./routes/Dashboard/dashboardhome.router');
+
 // const dashboardHomeRoutes = require('./routes/Dashboard/dashboardhome.router');
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
@@ -37,11 +38,16 @@ const stripeRoutes = require('./routes/stripe.router');
 
 dotenv.config();
 
+const allowedOrigins = [
+    "*",   // your main frontend from .env
+    "http://10.10.20.60:3003"   // fallback localhost
+];
+
 // DB Connection
 connectDB();
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 // Middleware
-app.use(cors());
+app.use(cors({ origin: allowedOrigins }));
 
 
 
@@ -96,7 +102,7 @@ app.use('/api/home', homePageRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/revenuecat', require('./routes/revenuecat.router'));
 
-// app.use('/api/dashboard', dashboardHomeRoutes);
+app.use('/api/dashboard/home', dashboardHomeRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);
 // app.use('/api/insurance', insuranceRoutes);
