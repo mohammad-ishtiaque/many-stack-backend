@@ -81,7 +81,7 @@ async function loadImageInput(src) {
                 try {
                     const buf = await fs.promises.readFile(absPath);
                     return await sharp(buf).png().toBuffer();
-                } catch (_) {}
+                } catch (_) { }
             }
             return absPath;
         }
@@ -97,7 +97,7 @@ async function loadImageInput(src) {
                         buf = await sharp(buf).png().toBuffer();
                     }
                     return buf;
-                } catch (_) {}
+                } catch (_) { }
             }
         }
         return null;
@@ -126,16 +126,16 @@ exports.generateInvoicePDF = async (invoice, res) => {
     doc
         .fontSize(12)
         .font('Helvetica-Bold')
-        .text(invoice.user?.firstName && invoice.user?.lastName ? 
-            `${invoice.user.firstName} ${invoice.user.lastName}` : 
+        .text(invoice.user?.firstName && invoice.user?.lastName ?
+            `${invoice.user.firstName} ${invoice.user.lastName}` :
             'Nom de l\'entreprise', 400, businessY, { align: 'right' })
         .fontSize(10)
         .font('Helvetica')
-        .text(invoice.user?.address?.streetNo && invoice.user?.address?.streetName ? 
-            `${invoice.user.address.streetNo} ${invoice.user.address.streetName}` : 
+        .text(invoice.user?.address?.streetNo && invoice.user?.address?.streetName ?
+            `${invoice.user.address.streetNo} ${invoice.user.address.streetName}` :
             'Adresse de l\'entreprise', 400, businessY + 18, { align: 'right' })
-        .text(invoice.user?.address?.city && invoice.user?.address?.postalCode ? 
-            `${invoice.user.address.postalCode} ${invoice.user.address.city}` : 
+        .text(invoice.user?.address?.city && invoice.user?.address?.postalCode ?
+            `${invoice.user.address.postalCode} ${invoice.user.address.city}` :
             'Ville, Code postal', 400, businessY + 36, { align: 'right' })
         .text(invoice.user?.address?.country || 'France', 400, businessY + 54, { align: 'right' })
         .text(`n° SIREN: ${invoice.user?.nSiren || 'XXXXXXXXXXXXXXX'}`, 400, businessY + 72, { align: 'right' })
@@ -149,15 +149,15 @@ exports.generateInvoicePDF = async (invoice, res) => {
         .text(`Facture N°: ${invoice.invoiceId}`, 350, invoiceDetailsY, { align: 'right' })
         .fontSize(10)
         .font('Helvetica')
-        .text(`Date d'émission: ${new Date(invoice.date || invoice.data).toLocaleDateString('fr-FR', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
+        .text(`Date d'émission: ${new Date(invoice.date || invoice.data).toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
         })}`, 350, invoiceDetailsY + 20, { align: 'right' })
-        .text(`Date d'échéance: ${new Date(new Date(invoice.date || invoice.data).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        .text(`Date d'échéance: ${new Date(new Date(invoice.date || invoice.data).getTime() + 14 * 24 * 60 * 60 * 1000).toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         })}`, 350, invoiceDetailsY + 40, { align: 'right' });
 
     // === Customer Information (Top Left) ===
@@ -172,14 +172,15 @@ exports.generateInvoicePDF = async (invoice, res) => {
         .text(`${invoice.address.streetNo} ${invoice.address.streetName}`, 50, customerY + 45)
         .text(`${invoice.address.postalCode} ${invoice.address.city}`, 50, customerY + 65)
         .text(invoice.address.country, 50, customerY + 85)
-        .text(`n° SIREN: ${invoice.nSiren}`, 50, customerY + 105);
+        .text(`n° SIREN: ${invoice.nSiren}`, 50, customerY + 105)
+        .text(invoice.email, 50, customerY + 125);
 
     // === Services Table ===
     // Calculate table position to avoid overlap
     const businessSectionHeight = 200; // Business info + invoice details
     const customerSectionHeight = 150; // Customer info
     const tableTop = Math.max(customerY + customerSectionHeight, businessY + businessSectionHeight);
-    
+
     // Table header with blue background
     doc
         .rect(50, tableTop, 500, 25)
@@ -204,7 +205,7 @@ exports.generateInvoicePDF = async (invoice, res) => {
         if (index % 2 === 0) {
             doc.rect(50, y - 5, 500, 20).fill('#F8F9FA');
         }
-        
+
         doc
             .font('Helvetica')
             .fontSize(10)
@@ -242,10 +243,10 @@ exports.generateInvoicePDF = async (invoice, res) => {
 
     // === Status and Signature Section ===
     const statusY = totalsY + 120; // More space before status
-    doc
-        .fontSize(12)
-        .fillColor(invoice.status === 'PAID' ? 'green' : 'red')
-        .text(`Statut: ${invoice.status === 'PAID' ? 'PAYÉ' : 'NON PAYÉ'}`, 50, statusY);
+    // doc
+    //     .fontSize(12)
+    //     .fillColor(invoice.status === 'PAID' ? 'green' : 'red')
+    //     .text(`Statut: ${invoice.status === 'PAID' ? 'PAYÉ' : 'NON PAYÉ'}`, 50, statusY);
 
     // === Signature Section ===
     doc
@@ -295,7 +296,7 @@ exports.generateInterventionPDF = async (intervention, res) => {
         .text(`     : ${intervention.category?.name || 'N/A'}`, { align: 'right' })
         .moveDown(0.5)
         .text(`Prix`, { continued: true })
-        .text(`       : ${intervention.price.toFixed(2)} $`, { align: 'right' })
+        .text(`       : ${intervention.price.toFixed(2)} €`, { align: 'right' })
         .moveDown(0.5)
         .text(`Note`, { continued: true })
         .text(`        : ${intervention.note || '-'}`, { align: 'right' })
@@ -306,7 +307,7 @@ exports.generateInterventionPDF = async (intervention, res) => {
         .font('Helvetica-Bold')
         .fontSize(14)
         .fillColor(intervention.status === 'PAID' ? 'green' : 'red')
-        .text(`Statut: ${intervention.status}`, { align: 'right' });
+    // .text(`Statut: ${intervention.status}`, { align: 'right' });
 
     // Reset fill color to black for the rest of the document!
     doc.fillColor('black');
@@ -400,11 +401,11 @@ exports.generateExpensePDF = async (expense, res) => {
         .text('RAPPORT DE DÉPENSES', { align: 'center' })
         .moveDown(2);
 
-    doc
-        .fontSize(14)
-        .font('Helvetica-Bold')
-        .text(`ID de la dépense: ${expense._id}`, { bold: true })
-        .moveDown(1);
+    // doc
+    //     .fontSize(14)
+    //     .font('Helvetica-Bold')
+    //     .text(`ID de la dépense: ${expense._id}`, { bold: true })
+    //     .moveDown(1);
 
     doc.moveDown(1);
     // === Basic Details ===
@@ -421,7 +422,7 @@ exports.generateExpensePDF = async (expense, res) => {
         .text(`     : ${expense.expenseCategory || 'N/A'}`, { align: 'right' })
         .moveDown(0.5)
         .text(`Prix`, { continued: true })
-        .text(`       : ${expense.price.toFixed(2)} $`, { align: 'right' })
+        .text(`       : ${expense.price.toFixed(2)} €`, { align: 'right' })
         .moveDown(0.5)
         .text(`Note`, { continued: true })
         .text(`        : ${expense.note || '-'}`, { align: 'right' })
