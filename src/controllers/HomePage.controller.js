@@ -40,7 +40,7 @@ exports.getHomePageData = async (req, res) => {
     // Parse query params for month and year
     const queryMonthRaw = (req.query.month || '').toString().trim();
     const normalizeMonth = (m) => m ? m.slice(0, 3).toLowerCase() : '';
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
     const monthLookup = months.map(m => m.toLowerCase());
     
     // Get month index from query or use current month
