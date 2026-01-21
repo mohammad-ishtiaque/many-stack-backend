@@ -6,6 +6,7 @@ const emailService = require('../utils/emailService');
 const TempUser = require('../models/TempUser');
 const Subscription = require('../models/Dashboard/Subscription');
 const { assignFreePlanFromSubscriptionList } = require('../controllers/Stripe.controller');
+const Category = require('../models/Category');
 
 // Unified login for users and admins
 exports.login = async (req, res) => {
@@ -282,6 +283,20 @@ exports.verifyEmail = async (req, res) => {
       }
     });
     await user.save();
+
+    // Create default categories
+    await Category.insertMany([
+      {
+        name: "PLP",
+        price: 0,
+        user: user._id
+      },
+      {
+        name: "SAV",
+        price: 0,
+        user: user._id
+      }
+    ]);
     // Delete temporary user
     await TempUser.findOneAndDelete({ email });
 
