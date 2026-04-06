@@ -21,232 +21,271 @@ const safeFixed2 = (value) => {
   return num.toFixed(2);
 };
 
+// Returns a NUMBER (not a string) so callers can format it once
 const safePercentChange = (currentValue, previousValue) => {
   const currentNum = toFiniteNumber(currentValue);
   const previousNum = toFiniteNumber(previousValue);
   if (previousNum === 0) {
-    if (currentNum > 0) return '100.00';
-    if (currentNum < 0) return '-100.00';
-    return '0.00';
+    if (currentNum > 0) return 100;
+    if (currentNum < 0) return -100;
+    return 0;
   }
-  const change = ((currentNum - previousNum) / Math.abs(previousNum)) * 100;
-  return safeFixed2(change);
+  return ((currentNum - previousNum) / Math.abs(previousNum)) * 100;
+};
+
+// Display-friendly month labels (French abbreviated)
+const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+
+// Robust French month name → index lookup
+// Covers: full names, common abbreviations (with/without dots), accented & non-accented variants, numeric (1-12)
+const MONTH_NAME_MAP = {
+  // January
+  'janvier': 0, 'janv': 0, 'jan': 0,
+  // February
+  'février': 1, 'fevrier': 1, 'févr': 1, 'fevr': 1, 'fév': 1, 'fev': 1, 'feb': 1,
+  // March
+  'mars': 2, 'mar': 2,
+  // April
+  'avril': 3, 'avr': 3, 'apr': 3,
+  // May
+  'mai': 4, 'may': 4,
+  // June
+  'juin': 5, 'jun': 5,
+  // July
+  'juillet': 6, 'juil': 6, 'jul': 6,
+  // August
+  'août': 7, 'aout': 7, 'aoû': 7, 'aou': 7, 'aug': 7,
+  // September
+  'septembre': 8, 'sept': 8, 'sep': 8,
+  // October
+  'octobre': 9, 'oct': 9,
+  // November
+  'novembre': 10, 'nov': 10,
+  // December
+  'décembre': 11, 'decembre': 11, 'déc': 11, 'dec': 11,
+};
+
+/**
+ * Parse a month query param into a 0-based month index.
+ * Supports: numeric (1-12), French full/abbreviated names, with/without dots/accents.
+ * Returns -1 if unrecognised.
+ */
+const parseMonthIndex = (raw) => {
+  if (!raw || typeof raw !== 'string') return -1;
+
+  // Strip dots and trailing/leading whitespace, lowercase
+  const cleaned = raw.replace(/\./g, '').trim().toLowerCase();
+  if (!cleaned) return -1;
+
+  // Try numeric first (1-12)
+  const asNum = parseInt(cleaned, 10);
+  if (!isNaN(asNum) && asNum >= 1 && asNum <= 12 && String(asNum) === cleaned) {
+    return asNum - 1;
+  }
+
+  // Try direct lookup
+  if (cleaned in MONTH_NAME_MAP) return MONTH_NAME_MAP[cleaned];
+
+  // Try stripping accents as a last resort (e.g. Février → fevrier)
+  const noAccents = cleaned.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (noAccents !== cleaned && noAccents in MONTH_NAME_MAP) return MONTH_NAME_MAP[noAccents];
+
+  return -1;
+};
+
+/**
+ * Ensure a value is a proper JS Date. Handles Mongoose Timestamps, ISO strings, and epoch ms.
+ * Returns null if the value cannot be converted.
+ */
+const ensureDate = (val) => {
+  if (!val) return null;
+  if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+  if (typeof val.toDate === 'function') return ensureDate(val.toDate());
+  const d = new Date(val);
+  return isNaN(d.getTime()) ? null : d;
 };
 
 exports.getHomePageData = async (req, res) => {
   try {
     const userId = req.user.id;
     const today = startOfDay(new Date());
-    // Parse query params for month and year
+
+    // ── Parse query params ──────────────────────────────────────────
     const queryMonthRaw = (req.query.month || '').toString().trim();
-    const normalizeMonth = (m) => m ? m.slice(0, 3).toLowerCase() : '';
-    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-    const monthLookup = months.map(m => m.toLowerCase());
-    
-    // Get month index from query or use current month
-    const monthFromQueryIndex = monthLookup.indexOf(normalizeMonth(queryMonthRaw));
-    const targetYear = Number(req.query.year) && Number.isFinite(Number(req.query.year)) ? Number(req.query.year) : today.getFullYear();
-    const selectedMonthIndex = monthFromQueryIndex >= 0 ? monthFromQueryIndex : today.getMonth();
+    const queryYearRaw = req.query.year;
+
+    const parsedYear = Number(queryYearRaw);
+    const targetYear = Number.isFinite(parsedYear) && parsedYear > 0 ? parsedYear : today.getFullYear();
+
+    const monthFromQueryIndex = parseMonthIndex(queryMonthRaw);
+    const currentMonthIndex = monthFromQueryIndex >= 0 ? monthFromQueryIndex : today.getMonth();
+
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Force fresh data fetch - no caching
-    // Add a small delay to ensure any pending database operations are committed
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const interventions = await Intervention.find({ 
-      user: userId,
-      createdAt: { $exists: true }
-    }).lean();
-    
-    const expenses = await Expense.find({ 
-      user: userId,
-      createdAt: { $exists: true }
-    }).lean();
+    // ── Fetch data ──────────────────────────────────────────────────
+    const [interventions, expenses] = await Promise.all([
+      Intervention.find({ user: userId, createdAt: { $exists: true } }).lean(),
+      Expense.find({ user: userId, createdAt: { $exists: true } }).lean(),
+    ]);
 
-    // Process data for the dashboard
+    // Normalise all createdAt fields to proper JS Date objects
+    interventions.forEach(doc => { doc.createdAt = ensureDate(doc.createdAt); });
+    expenses.forEach(doc => { doc.createdAt = ensureDate(doc.createdAt); });
 
-    // Convert MongoDB dates to JavaScript Date objects
-    interventions.forEach(int => {
-      if (int.createdAt && typeof int.createdAt.toDate === 'function') {
-        int.createdAt = int.createdAt.toDate();
-      }
-    });
+    // ── Build monthly data for all 12 months of targetYear ──────────
+    const monthlyDataRaw = months.map((label, idx) => {
+      const monthStart = new Date(targetYear, idx, 1);
+      const monthEnd = new Date(targetYear, idx + 1, 0);
+      monthEnd.setHours(23, 59, 59, 999);
 
-    expenses.forEach(exp => {
-      if (exp.createdAt && typeof exp.createdAt.toDate === 'function') {
-        exp.createdAt = exp.createdAt.toDate();
-      }
-    });
-
-    const totalIncomeAmount = interventions.reduce(sumPrice, 0);
-    const totalExpenseAmount = expenses.reduce(sumPrice, 0);
-    const totalProfit = toFiniteNumber(totalIncomeAmount) - toFiniteNumber(totalExpenseAmount);
-
-    const monthlyDataRaw = months.map((month, index) => {
-      const startOfMonth = new Date(targetYear, index, 1);
-      const endOfMonth = new Date(targetYear, index + 1, 0);
-      endOfMonth.setHours(23, 59, 59, 999);
-
-      const monthIncome = interventions
-        .filter(int => int.createdAt && int.createdAt >= startOfMonth && int.createdAt <= endOfMonth)
-        .reduce(sumPrice, 0);
-
-      const monthExpense = expenses
-        .filter(exp => exp.createdAt && exp.createdAt >= startOfMonth && exp.createdAt <= endOfMonth)
-        .reduce(sumPrice, 0);
-
-      return {
-        month,
-        income: safeFixed2(monthIncome),
-        expenses: safeFixed2(monthExpense),
-        profit: safeFixed2(toFiniteNumber(monthIncome) - toFiniteNumber(monthExpense))
-      };
-    });
-
-    // Rotate monthly data so selected month appears first (default view)
-    const currentMonthIndex = selectedMonthIndex;
-    const monthlyData = [
-      ...monthlyDataRaw.slice(currentMonthIndex),
-      ...monthlyDataRaw.slice(0, currentMonthIndex)
-    ];
-
-    const todayInterventions = interventions.filter(
-      int => int.createdAt && int.createdAt >= today && int.createdAt < tomorrow
-    );
-
-    const todayTotalPrice = todayInterventions.reduce(sumPrice, 0);
-    const interventionPercentage = interventions.length > 0
-      ? toFiniteNumber((todayInterventions.length / interventions.length) * 100)
-      : 0;
-    const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
-
-    // Get current month and previous month data for calculations
-    const currentMonthIncome = toFiniteNumber(monthlyDataRaw[currentMonthIndex].income);
-    const prevMonthIncome = toFiniteNumber(monthlyDataRaw[prevMonthIndex].income);
-    const currentMonthExpenses = toFiniteNumber(monthlyDataRaw[currentMonthIndex].expenses);
-    const prevMonthExpenses = toFiniteNumber(monthlyDataRaw[prevMonthIndex].expenses);
-
-    // Calculate percentage changes between current and previous month
-    const incomeChange = safePercentChange(currentMonthIncome, prevMonthIncome);
-    const expenseChange = safePercentChange(currentMonthExpenses, prevMonthExpenses);
-
-    // Calculate profit for current and previous month
-    const prevMonthProfit = toFiniteNumber(prevMonthIncome) - toFiniteNumber(prevMonthExpenses);
-    const currentMonthProfit = toFiniteNumber(currentMonthIncome) - toFiniteNumber(currentMonthExpenses);
-    const profitChange = safePercentChange(currentMonthProfit, prevMonthProfit);
-
-    const currentMonthInterventions = interventions.filter(int =>
-      int.createdAt &&
-      int.createdAt.getMonth() === currentMonthIndex &&
-      int.createdAt.getFullYear() === targetYear
-    );
-    const currentMonthExpensesList = expenses.filter(exp =>
-      exp.createdAt &&
-      exp.createdAt.getMonth() === currentMonthIndex &&
-      exp.createdAt.getFullYear() === targetYear
-    );
-
-    const currentMonthData = {
-      income: safeFixed2(currentMonthInterventions.reduce(sumPrice, 0)),
-      expenses: safeFixed2(currentMonthExpensesList.reduce(sumPrice, 0)),
-      profit: safeFixed2(
-        toFiniteNumber(currentMonthInterventions.reduce(sumPrice, 0)) -
-        toFiniteNumber(currentMonthExpensesList.reduce(sumPrice, 0))
-      )
-    };
-
-    const currentMonthTotalInterventions = currentMonthInterventions.length;
-    const currentMonthTotalExpenses = currentMonthExpensesList.length;
-    const currentMonthTotalIncome = currentMonthData.income;
-    const currentMonthTotalProfit = currentMonthData.profit;
-
-    const previousMonth = new Date(targetYear, currentMonthIndex - 1, 1);
-    const endOfPreviousMonth = new Date(targetYear, currentMonthIndex, 1);
-    const previousMonthInterventions = interventions.filter(int =>
-      int.createdAt && int.createdAt >= previousMonth && int.createdAt < endOfPreviousMonth
-    ).length;
-
-    const currentMonthPercentageChange = previousMonthInterventions
-      ? safeFixed2(((currentMonthTotalInterventions - previousMonthInterventions) / previousMonthInterventions) * 100)
-      : '0.00';
-
-    // Build detailed metrics for all months of the selected year
-    const allMonthsData = months.map((m, idx) => {
-      const monthInterventions = interventions.filter(int =>
-        int.createdAt &&
-        int.createdAt.getMonth() === idx &&
-        int.createdAt.getFullYear() === targetYear
+      const monthInterventions = interventions.filter(
+        d => d.createdAt && d.createdAt >= monthStart && d.createdAt <= monthEnd
       );
-      const monthExpensesList = expenses.filter(exp =>
-        exp.createdAt &&
-        exp.createdAt.getMonth() === idx &&
-        exp.createdAt.getFullYear() === targetYear
+      const monthExpensesList = expenses.filter(
+        d => d.createdAt && d.createdAt >= monthStart && d.createdAt <= monthEnd
       );
 
-      const monthIncomeSum = monthInterventions.reduce(sumPrice, 0);
-      const monthExpenseSum = monthExpensesList.reduce(sumPrice, 0);
-      const monthProfitNum = toFiniteNumber(monthIncomeSum) - toFiniteNumber(monthExpenseSum);
+      const incomeSum = monthInterventions.reduce(sumPrice, 0);
+      const expenseSum = monthExpensesList.reduce(sumPrice, 0);
+      const profitNum = toFiniteNumber(incomeSum) - toFiniteNumber(expenseSum);
 
+      // Previous month date range (correctly wraps to Dec of previous year for Jan)
+      const prevYear = idx === 0 ? targetYear - 1 : targetYear;
       const prevIdx = (idx - 1 + 12) % 12;
-      const prevStart = new Date(targetYear, prevIdx, 1);
-      const prevEnd = new Date(targetYear, idx, 1);
-      const prevInterventionsCount = interventions.filter(int =>
-        int.createdAt && int.createdAt >= prevStart && int.createdAt < prevEnd
+      const prevStart = new Date(prevYear, prevIdx, 1);
+      const prevEnd = new Date(targetYear, idx, 1); // first instant of current month
+      const prevInterventionsCount = interventions.filter(
+        d => d.createdAt && d.createdAt >= prevStart && d.createdAt < prevEnd
       ).length;
 
-      const monthPercentageChange = prevInterventionsCount
-        ? safeFixed2(((monthInterventions.length - prevInterventionsCount) / prevInterventionsCount) * 100)
-        : '0.00';
-
-      const monthData = {
-        income: safeFixed2(monthIncomeSum),
-        expenses: safeFixed2(monthExpenseSum),
-        profit: safeFixed2(monthProfitNum)
-      };
+      const percentageChange = prevInterventionsCount
+        ? toFiniteNumber(((monthInterventions.length - prevInterventionsCount) / prevInterventionsCount) * 100)
+        : 0;
 
       return {
-        month: m,
-        data: monthData,
-        percentageChange: monthPercentageChange,
+        month: label,
+        income: safeFixed2(incomeSum),
+        expenses: safeFixed2(expenseSum),
+        profit: safeFixed2(profitNum),
         totalInterventions: monthInterventions.length,
         totalExpenses: monthExpensesList.length,
-        totalIncome: safeFixed2(monthIncomeSum),
-        totalProfit: safeFixed2(monthProfitNum),
-        previousMonthInterventions: prevInterventionsCount
+        percentageChange: safeFixed2(percentageChange),
+        previousMonthInterventions: prevInterventionsCount,
       };
     });
 
+    // ── Current month data (derived from the single monthlyDataRaw pass) ─
+    const currentMonthIndexData = monthlyDataRaw[currentMonthIndex];
+    const prevMonthIndex = (currentMonthIndex - 1 + 12) % 12;
+
+    // For percentage-change comparisons we need the previous month's figures.
+    // When currentMonthIndex is January, we need December of (targetYear - 1).
+    let prevMonthIncome, prevMonthExpenses;
+    if (currentMonthIndex === 0) {
+      // Previous month is December of previous year — compute from raw data
+      const prevStart = new Date(targetYear - 1, 11, 1);
+      const prevEnd = new Date(targetYear, 0, 1);
+      prevMonthIncome = interventions
+        .filter(d => d.createdAt && d.createdAt >= prevStart && d.createdAt < prevEnd)
+        .reduce(sumPrice, 0);
+      prevMonthExpenses = expenses
+        .filter(d => d.createdAt && d.createdAt >= prevStart && d.createdAt < prevEnd)
+        .reduce(sumPrice, 0);
+    } else {
+      const prev = monthlyDataRaw[prevMonthIndex];
+      prevMonthIncome = toFiniteNumber(prev.income);
+      prevMonthExpenses = toFiniteNumber(prev.expenses);
+    }
+    const prevMonthProfit = toFiniteNumber(prevMonthIncome) - toFiniteNumber(prevMonthExpenses);
+
+    const currentMonthIncome = toFiniteNumber(currentMonthIndexData.income);
+    const currentMonthExpenses = toFiniteNumber(currentMonthIndexData.expenses);
+    const currentMonthProfit = toFiniteNumber(currentMonthIndexData.profit);
+
+    const incomeChange = safePercentChange(currentMonthIncome, prevMonthIncome);
+    const expenseChange = safePercentChange(currentMonthExpenses, prevMonthExpenses);
+    const profitChange = safePercentChange(currentMonthProfit, prevMonthProfit);
+
+    // ── Today's highlights ──────────────────────────────────────────
+    const todayInterventions = interventions.filter(
+      d => d.createdAt && d.createdAt >= today && d.createdAt < tomorrow
+    );
+    const todayTotalPrice = todayInterventions.reduce(sumPrice, 0);
+
+    // ── Previous month intervention count (for intervention % change) ─
+    const prevYearForCount = currentMonthIndex === 0 ? targetYear - 1 : targetYear;
+    const prevCountStart = new Date(prevYearForCount, prevMonthIndex, 1);
+    const prevCountEnd = new Date(targetYear, currentMonthIndex, 1);
+    const previousMonthInterventionCount = interventions.filter(
+      d => d.createdAt && d.createdAt >= prevCountStart && d.createdAt < prevCountEnd
+    ).length;
+
+    const currentMonthPercentageChange = safePercentChange(
+      currentMonthIndexData.totalInterventions,
+      previousMonthInterventionCount
+    );
+
+    // ── Current month summary object (kept for backwards compatibility) ─
+    const currentMonthData = {
+      income: currentMonthIndexData.income,
+      expenses: currentMonthIndexData.expenses,
+      profit: currentMonthIndexData.profit,
+    };
+
+    // ── Build allMonthsData with richer per-month detail ────────────
+    const allMonthsData = monthlyDataRaw.map((m, idx) => ({
+      month: m.month,
+      data: {
+        income: m.income,
+        expenses: m.expenses,
+        profit: m.profit,
+      },
+      percentageChange: m.percentageChange,
+      totalInterventions: m.totalInterventions,
+      totalExpenses: m.totalExpenses,
+      totalIncome: m.income,
+      totalProfit: m.profit,
+      previousMonthInterventions: m.previousMonthInterventions,
+    }));
+
+    // ── Response ────────────────────────────────────────────────────
     res.status(200).json({
       success: true,
       timestamp: new Date().toISOString(),
       data: {
-        totalProfit: safeFixed2(currentMonthTotalProfit),
+        // Selected month totals
+        totalProfit: currentMonthIndexData.profit,
         profitChange: `${safeFixed2(profitChange)}%`,
-        totalInterventions: currentMonthTotalInterventions,
-        totalExpenses: currentMonthTotalExpenses,
-        totalExpensesInPrice: safeFixed2(currentMonthData.expenses),
-        totalInterventionsInPrice: safeFixed2(currentMonthData.income),
-        totalIncome: safeFixed2(currentMonthData.income),
+        totalInterventions: currentMonthIndexData.totalInterventions,
+        totalExpenses: currentMonthIndexData.totalExpenses,
+        totalExpensesInPrice: currentMonthIndexData.expenses,
+        totalInterventionsInPrice: currentMonthIndexData.income,
+        totalIncome: currentMonthIndexData.income,
         incomeChange: `${safeFixed2(incomeChange)}%`,
         expenseChange: `${safeFixed2(expenseChange)}%`,
         interventionChange: `${safeFixed2(currentMonthPercentageChange)}%`,
         selectedMonth: months[currentMonthIndex],
         selectedYear: targetYear,
-        monthlyData,
+
+        // Full year chart data (always in calendar order Jan → Dec)
+        monthlyData: monthlyDataRaw,
+
         todayHighlights: {
           totalInterventions: todayInterventions.length,
-          totalPrice: safeFixed2(todayTotalPrice)
+          totalPrice: safeFixed2(todayTotalPrice),
         },
+
+        // Backwards-compatible fields
         currentMonthData,
-        currentMonthPercentageChange,
-        currentMonthTotalInterventions,
-        currentMonthTotalExpenses,
-        currentMonthTotalIncome,
-        currentMonthTotalProfit,
-        previousMonthInterventions,
-        allMonthsData
-      }
+        currentMonthPercentageChange: safeFixed2(currentMonthPercentageChange),
+        currentMonthTotalInterventions: currentMonthIndexData.totalInterventions,
+        currentMonthTotalExpenses: currentMonthIndexData.totalExpenses,
+        currentMonthTotalIncome: currentMonthIndexData.income,
+        currentMonthTotalProfit: currentMonthIndexData.profit,
+        previousMonthInterventions: previousMonthInterventionCount,
+        allMonthsData,
+      },
     });
   } catch (error) {
     console.error('Homepage data fetch error:', error);
