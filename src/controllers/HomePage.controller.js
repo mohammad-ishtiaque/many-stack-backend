@@ -268,8 +268,11 @@ exports.getHomePageData = async (req, res) => {
         selectedMonth: months[currentMonthIndex],
         selectedYear: targetYear,
 
-        // Full year chart data (always in calendar order Jan → Dec)
-        monthlyData: monthlyDataRaw,
+        // Rotate monthly data so selected month appears first (matches original app expectation)
+        monthlyData: [
+          ...monthlyDataRaw.slice(currentMonthIndex),
+          ...monthlyDataRaw.slice(0, currentMonthIndex)
+        ],
 
         todayHighlights: {
           totalInterventions: todayInterventions.length,
