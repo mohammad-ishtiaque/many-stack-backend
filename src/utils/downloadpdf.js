@@ -5,13 +5,7 @@ const path = require('path');
 const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
 
 
-// Optional: sharp for WebP/SVG conversion if installed
-let sharp = null;
-try {
-    sharp = require('sharp');
-} catch (_) {
-    // sharp not installed; skip conversion
-}
+const sharp = require('sharp');
 
 
 const s3Client = new S3Client({
@@ -32,6 +26,28 @@ function streamToBuffer(stream) {
     });
 }
 
+// Helper: Process buffer with sharp for enhancement
+async function enhanceImage(buf) {
+    if (!sharp || !buf) return buf;
+    try {
+        // Sharpen the image and ensure it's in a compatible format (PNG) with high quality
+        // We also "de-optimize" to ensure we have enough resolution for the PDF point size
+        return await sharp(buf)
+            .rotate() // Auto-rotate based on EXIF
+            .resize({ width: 800, withoutEnlargement: true }) // Ensure at least 800px width for clarity if possible
+            .sharpen({
+                sigma: 1,
+                m1: 0.5,
+                m2: 0.5
+            })
+            .png({ quality: 90, compressionLevel: 6 })
+            .toBuffer();
+    } catch (e) {
+        console.error('Sharp enhancement failed:', e);
+        return buf;
+    }
+}
+
 // Helper: Load image from URL (S3/public) as Buffer or fallback to local path
 async function loadImageInput(src) {
     if (!src) return null;
@@ -41,19 +57,13 @@ async function loadImageInput(src) {
             try {
                 const response = await axios.get(src, { responseType: 'arraybuffer', timeout: 10000 });
                 let buf = Buffer.from(response.data);
-                const ct = (response.headers['content-type'] || '').toLowerCase();
-                if (sharp && (ct.includes('image/webp') || ct.includes('image/svg'))) {
-                    // Convert to PNG for PDFKit compatibility
-                    buf = await sharp(buf).png().toBuffer();
-                }
-                return buf;
+                return await enhanceImage(buf);
             } catch (httpErr) {
                 // If URL looks like S3 and request failed, attempt AWS SDK GetObject
                 const m = src.match(/^https?:\/\/([^\/]+)\/(.+)$/i);
                 if (m) {
                     const host = m[1];
                     const key = m[2];
-                    // Try to infer bucket from host patterns like <bucket>.s3.*.amazonaws.com
                     let bucket = process.env.S3_BUCKET || process.env.AWS_BUCKET_NAME;
                     const sub = host.split('.')[0];
                     if (!bucket && /s3/i.test(host)) bucket = sub;
@@ -61,11 +71,7 @@ async function loadImageInput(src) {
                         try {
                             const out = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: decodeURIComponent(key) }));
                             let buf = await streamToBuffer(out.Body);
-                            const ct = (out.ContentType || '').toLowerCase();
-                            if (sharp && (ct.includes('image/webp') || ct.includes('image/svg'))) {
-                                buf = await sharp(buf).png().toBuffer();
-                            }
-                            return buf;
+                            return await enhanceImage(buf);
                         } catch (_) {
                             // fall through
                         }
@@ -76,14 +82,8 @@ async function loadImageInput(src) {
         // Treat as local path
         const absPath = path.isAbsolute(src) ? src : path.resolve(src);
         if (fs.existsSync(absPath)) {
-            // If local .webp and sharp exists, convert
-            if (sharp && /\.webp$/i.test(absPath)) {
-                try {
-                    const buf = await fs.promises.readFile(absPath);
-                    return await sharp(buf).png().toBuffer();
-                } catch (_) { }
-            }
-            return absPath;
+            const buf = await fs.promises.readFile(absPath);
+            return await enhanceImage(buf);
         }
         // If src appears to be an S3 key, try fetching via SDK
         if (typeof src === 'string') {
@@ -92,11 +92,7 @@ async function loadImageInput(src) {
                 try {
                     const out = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: src }));
                     let buf = await streamToBuffer(out.Body);
-                    const ct = (out.ContentType || '').toLowerCase();
-                    if (sharp && (ct.includes('image/webp') || ct.includes('image/svg'))) {
-                        buf = await sharp(buf).png().toBuffer();
-                    }
-                    return buf;
+                    return await enhanceImage(buf);
                 } catch (_) { }
             }
         }
@@ -328,20 +324,34 @@ exports.generateInterventionPDF = async (intervention, res) => {
         const imageWidth = 200;
         const imageHeight = 150;
         const margin = 50;
-        const captionHeight = 35;
-        let startY = doc.y;
+        const rowGutter = 50; // Horizontal gap between images
+        const captionPadding = 5;
+        const bottomGutter = 25; // Space after each row
+        
+        let currentY = doc.y;
 
         for (let i = 0; i < intervention.images.length; i += imagesPerRow) {
-            let rowY = startY;
-            // Draw images in the row
+            // Calculate required height for this row (Image + max possible caption height)
+            const rowTotalHeight = imageHeight + 45; // 150 + 45 (for caption + date + small gap)
+
+            // Check if we need a new page BEFORE rendering the row
+            if (currentY + rowTotalHeight > doc.page.height - 70) {
+                doc.addPage();
+                currentY = doc.page.margins.top;
+            }
+
+            const rowY = currentY;
+
+            // First pass: Draw images
             for (let j = 0; j < imagesPerRow; j++) {
                 const index = i + j;
                 if (index >= intervention.images.length) break;
-                const image = intervention.images[index];
-                const x = margin + (j * (imageWidth + 50));
+                
+                const x = margin + (j * (imageWidth + rowGutter));
                 try {
                     const imgInput = preloadedImages[index];
-                    if (!imgInput) throw new Error('No image input');
+                    if (!imgInput) throw new Error('Image not loaded');
+                    
                     doc.image(imgInput, x, rowY, {
                         width: imageWidth,
                         height: imageHeight,
@@ -351,30 +361,33 @@ exports.generateInterventionPDF = async (intervention, res) => {
                     doc.font('Helvetica').fontSize(10).text('Image failed to load', x, rowY);
                 }
             }
-            // Draw captions below each image, and measure height for date
+
+            // Second pass: Draw captions (at consistent Y for the row)
             for (let j = 0; j < imagesPerRow; j++) {
                 const index = i + j;
                 if (index >= intervention.images.length) break;
+                
                 const image = intervention.images[index];
-                const x = margin + (j * (imageWidth + 50));
-                const captionY = rowY + imageHeight + 5;
-                doc.font('Helvetica').fontSize(10);
+                const x = margin + (j * (imageWidth + rowGutter));
+                const captionY = rowY + imageHeight + captionPadding;
+
+                doc.font('Helvetica').fontSize(10).fillColor('black');
                 const captionText = `Image ${index + 1}: ${image.location || 'Unknown Location'}`;
-                doc.text(captionText, x, captionY, { width: imageWidth, continued: false });
-                const captionHeightActual = doc.heightOfString(captionText, { width: imageWidth });
-                doc.text(
+                
+                // Draw caption and date
+                doc.text(captionText, x, captionY, { width: imageWidth });
+                const captionH = doc.heightOfString(captionText, { width: imageWidth });
+                
+                doc.fontSize(9).fillColor('#666666').text(
                     `${new Date(image.createdAt).toLocaleDateString()}`,
                     x,
-                    captionY + captionHeightActual + 2,
-                    { width: imageWidth, continued: false }
+                    captionY + captionH + 2,
+                    { width: imageWidth }
                 );
             }
-            // Move Y for next row
-            startY = rowY + imageHeight + captionHeight + 20;
-            if (startY > doc.page.height - 100) {
-                doc.addPage();
-                startY = doc.y;
-            }
+
+            // Update Y for next row
+            currentY = rowY + rowTotalHeight + bottomGutter;
         }
     }
 
@@ -440,23 +453,35 @@ exports.generateExpensePDF = async (expense, res) => {
             .moveDown(1);
 
         const imagesPerRow = 2;
-        const imageWidth = 150;
-        const imageHeight = 100;
+        const imageWidth = 200; // Increased for consistency with Intervention
+        const imageHeight = 150;
         const margin = 50;
-        const captionHeight = 35; // Space for caption and date
-        let startY = doc.y;
+        const rowGutter = 50;
+        const captionPadding = 5;
+        const bottomGutter = 25;
+        
+        let currentY = doc.y;
 
         for (let i = 0; i < expense.images.length; i += imagesPerRow) {
-            let rowY = startY;
-            // Draw images in the row
+            const rowTotalHeight = imageHeight + 45;
+
+            if (currentY + rowTotalHeight > doc.page.height - 70) {
+                doc.addPage();
+                currentY = doc.page.margins.top;
+            }
+
+            const rowY = currentY;
+
+            // Draw images
             for (let j = 0; j < imagesPerRow; j++) {
                 const index = i + j;
                 if (index >= expense.images.length) break;
-                const image = expense.images[index];
-                const x = margin + (j * (imageWidth + 50));
+                
+                const x = margin + (j * (imageWidth + rowGutter));
                 try {
-                    const imgInput = await loadImageInput(image.url || image.src || image.path);
-                    if (!imgInput) throw new Error('No image input');
+                    const imgInput = preloadedImages[index];
+                    if (!imgInput) throw new Error('Image not loaded');
+                    
                     doc.image(imgInput, x, rowY, {
                         width: imageWidth,
                         height: imageHeight,
@@ -466,24 +491,31 @@ exports.generateExpensePDF = async (expense, res) => {
                     doc.font('Helvetica').fontSize(10).text('Image failed to load', x, rowY);
                 }
             }
-            // Draw captions below each image
+
+            // Draw captions
             for (let j = 0; j < imagesPerRow; j++) {
                 const index = i + j;
                 if (index >= expense.images.length) break;
+                
                 const image = expense.images[index];
-                const x = margin + (j * (imageWidth + 50));
-                const captionY = rowY + imageHeight + 5;
-                doc.font('Helvetica').fontSize(10)
-                    .text(`Image ${index + 1}: ${image?.location || 'Unknown Location'}`, x, captionY, { width: imageWidth })
-                    .text(`${new Date(image.createdAt).toLocaleDateString()}`, x, captionY + 15, { width: imageWidth });
+                const x = margin + (j * (imageWidth + rowGutter));
+                const captionY = rowY + imageHeight + captionPadding;
+
+                doc.font('Helvetica').fontSize(10).fillColor('black');
+                const captionText = `Image ${index + 1}: ${image?.location || 'Unknown Location'}`;
+                
+                doc.text(captionText, x, captionY, { width: imageWidth });
+                const captionH = doc.heightOfString(captionText, { width: imageWidth });
+                
+                doc.fontSize(9).fillColor('#666666').text(
+                    `${new Date(image.createdAt).toLocaleDateString()}`,
+                    x,
+                    captionY + captionH + 2,
+                    { width: imageWidth }
+                );
             }
-            // Move Y for next row
-            startY = rowY + imageHeight + captionHeight + 20;
-            // Add new page if needed
-            if (startY > doc.page.height - 100) {
-                doc.addPage();
-                startY = doc.y;
-            }
+
+            currentY = rowY + rowTotalHeight + bottomGutter;
         }
     }
 
