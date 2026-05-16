@@ -2,6 +2,42 @@ const PrivacyPolicy = require('../../models/Dashboard/Settings/PrivacyPolicy');
 const TermsConditions = require('../../models/Dashboard/Settings/TermsConditions');
 const ContactUs = require('../../models/Dashboard/Settings/ContactUs');
 
+const renderReadableDocument = (title, content) => `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>${title}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 0 20px;
+            color: #1f2937;
+            background: #f9fafb;
+        }
+        .document {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        }
+        h1 {
+            margin-top: 0;
+            color: #111827;
+        }
+    </style>
+</head>
+<body>
+    <main class="document">
+        <h1>${title}</h1>
+        <div>${content}</div>
+    </main>
+</body>
+</html>`;
+
 // Privacy Policy Controllers
 exports.createPrivacyPolicy = async (req, res) => {
     try {
@@ -21,6 +57,20 @@ exports.getPrivacyPolicy = async (req, res) => {
         res.status(200).json({ success: true, message: 'Privacy Policy retrieved successfully', data: privacyPolicy });
     } catch (error) {
         res.status(400).json({ success: false,message: 'Failed to retrieve Privacy Policy', error: error.message });
+    }
+};
+
+exports.viewPrivacyPolicy = async (req, res) => {
+    try {
+        const privacyPolicy = await PrivacyPolicy.findOne({ isActive: true }).sort({ createdAt: -1 });
+
+        if (!privacyPolicy) {
+            return res.status(404).send('<h1>Privacy Policy not found</h1>');
+        }
+
+        res.status(200).type('html').send(renderReadableDocument('Privacy Policy', privacyPolicy.content));
+    } catch (error) {
+        res.status(400).type('html').send(`<h1>Failed to retrieve Privacy Policy</h1><p>${error.message}</p>`);
     }
 };
 
@@ -56,6 +106,20 @@ exports.getTermsConditions = async (req, res) => {
         res.status(200).json({ success: true, data: termsConditions });
     } catch (error) {
         res.status(400).json({ success: false, error: error.message });
+    }
+};
+
+exports.viewTermsConditions = async (req, res) => {
+    try {
+        const termsConditions = await TermsConditions.findOne({ isActive: true }).sort({ createdAt: -1 });
+
+        if (!termsConditions) {
+            return res.status(404).send('<h1>Terms & Conditions not found</h1>');
+        }
+
+        res.status(200).type('html').send(renderReadableDocument('Terms & Conditions', termsConditions.content));
+    } catch (error) {
+        res.status(400).type('html').send(`<h1>Failed to retrieve Terms & Conditions</h1><p>${error.message}</p>`);
     }
 };
 
