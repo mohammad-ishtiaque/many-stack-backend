@@ -41,6 +41,8 @@ dotenv.config();
 const allowedOrigins = [
     "*",   // your main frontend from .env
     "http://10.10.20.60:3003",
+    "http://10.10.20.60:3001",
+    "http://10.10.20.60:3002",
     "https://manystack-dashboard.vercel.app"   // fallback localhost
 ];
 
