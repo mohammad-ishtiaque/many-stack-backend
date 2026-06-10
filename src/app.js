@@ -1,6 +1,8 @@
+const dotenv = require('dotenv');
+dotenv.config();
+
 const express = require('express');
 const connectDB = require('./config/db');
-const dotenv = require('dotenv');
 const app = express();
 const authRoutes = require('./routes/auth.router');
 const userRoutes = require('./routes/user.router');
@@ -36,6 +38,7 @@ const stripeRoutes = require('./routes/stripe.router');
 // const chassisRoutes = require('./routes/chessis.routes');
 // const tireRoutes = require('./routes/appliance.routes/tire.routes');
 
+<<<<<<< HEAD
 dotenv.config();
 
 const allowedOrigins = [
@@ -46,6 +49,8 @@ const allowedOrigins = [
     "https://manystack-dashboard.vercel.app"   // fallback localhost
 ];
 
+=======
+>>>>>>> b0b7471 (dfds)
 // DB Connection
 connectDB();
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }));
