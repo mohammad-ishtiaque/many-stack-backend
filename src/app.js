@@ -19,8 +19,6 @@ const makeAdminRoutes = require('./routes/Dashboard/makeAdmin.router');
 const userManagementRoutes = require('./routes/Dashboard/usermanagement.router');
 const homePageRoutes = require('./routes/homepage.router');
 const adminProfileRoutes = require('./routes/Dashboard/adminprofile');
-const dashboardHomeRoutes = require('./routes/Dashboard/dashboardhome.router');
-
 // const dashboardHomeRoutes = require('./routes/Dashboard/dashboardhome.router');
 const path = require('path');
 const expressLayouts = require('express-ejs-layouts');
@@ -38,24 +36,11 @@ const stripeRoutes = require('./routes/stripe.router');
 // const chassisRoutes = require('./routes/chessis.routes');
 // const tireRoutes = require('./routes/appliance.routes/tire.routes');
 
-<<<<<<< HEAD
-dotenv.config();
-
-const allowedOrigins = [
-    "*",   // your main frontend from .env
-    "http://10.10.20.60:3003",
-    "http://10.10.20.60:3001",
-    "http://10.10.20.60:3002",
-    "https://manystack-dashboard.vercel.app"   // fallback localhost
-];
-
-=======
->>>>>>> b0b7471 (dfds)
 // DB Connection
 connectDB();
 app.post('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 // Middleware
-app.use(cors({ origin: allowedOrigins }));
+app.use(cors());
 
 
 
@@ -100,17 +85,16 @@ app.use('/api/intervention', interventionRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/expense', expenseRoutes);
 app.use('/api/dashboard/subscription', subscriptionRoutes);
+
 app.use('/api/dashboard/allcategory', allcategoryRoutes);
 app.use('/api/dashboard/settings', settingsRoutes);
 app.use('/api/dashboard', makeAdminRoutes);
-// app.use('/api/dashboard/home', dashboardHomeRoutes);
 app.use('/api/dashboard', userManagementRoutes);
 app.use('/api/dashboard/adminprofile', adminProfileRoutes);
 app.use('/api/home', homePageRoutes);
 app.use('/api/stripe', stripeRoutes);
-app.use('/api/revenuecat', require('./routes/revenuecat.router'));
 
-app.use('/api/dashboard/home', dashboardHomeRoutes);
+// app.use('/api/dashboard', dashboardHomeRoutes);
 // app.use('/api/rv', rvRoutes);
 // app.use('/api/membership', membershipRoutes);
 // app.use('/api/insurance', insuranceRoutes);
