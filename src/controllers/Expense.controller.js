@@ -216,8 +216,8 @@ exports.updateExpense = async (req, res) => {
         const expense = await Expense.findByIdAndUpdate(id, updateData, { new: true });
 
         // Debug logging
-        console.log(`Expense updated - ID: ${id}`);
-        console.log(`Updated expense: ${JSON.stringify(expense)}`);
+        // console.log(`Expense updated - ID: ${id}`);
+        // console.log(`Updated expense: ${JSON.stringify(expense)}`);
 
         res.status(200).json({
             success: true,

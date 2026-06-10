@@ -2,7 +2,7 @@ const Invoice = require('../models/Invoice');
 const path = require('path');
 const fs = require('fs');
 const User = require('../models/User');
-const {generateInvoicePDF} = require('../utils/downloadpdf');
+const { generateInvoicePDF } = require('../utils/downloadpdf');
 //create invoice
 
 exports.createInvoice = async (req, res) => {
@@ -11,9 +11,9 @@ exports.createInvoice = async (req, res) => {
             name,
             email,
             phone,
-            nSiren,
             address,
             services,
+            nSiren,
             status,
             date,
             user
@@ -72,7 +72,7 @@ exports.getAllInvoices = async (req, res) => {
         const fromDate = req.query.fromDate ? new Date(req.query.fromDate) : new Date(0);
         const toDate = req.query.toDate ? new Date(req.query.toDate) : new Date();
 
-        let query = { user : userId };
+        let query = { user: userId };
 
         if (fromDate || toDate) {
             query.createdAt = {};
@@ -99,24 +99,24 @@ exports.getAllInvoices = async (req, res) => {
             .limit(limit)
             .sort({ createdAt: -1 });
 
-            if (invoices.length === 0) {
-                return res.status(200).json({
-                    success: true,
-                    invoices: [],
-                    message: 'Aucune facture trouvée pour les filtres donnés.',
-                    pagination: {
-                        currentPage: page,
-                        totalPages: 0,
-                        totalItems: 0,
-                        itemsPerPage: limit,
-                        hasMore: false,
-                        dateFilter: {
-                            fromDate: fromDate?.toISOString(),
-                            toDate: toDate?.toISOString()
-                        }
+        if (invoices.length === 0) {
+            return res.status(200).json({
+                success: true,
+                invoices: [],
+                message: 'Aucune facture trouvée pour les filtres donnés.',
+                pagination: {
+                    currentPage: page,
+                    totalPages: 0,
+                    totalItems: 0,
+                    itemsPerPage: limit,
+                    hasMore: false,
+                    dateFilter: {
+                        fromDate: fromDate?.toISOString(),
+                        toDate: toDate?.toISOString()
                     }
-                });
-            }
+                }
+            });
+        }
 
 
 
@@ -150,7 +150,7 @@ exports.getInvoiceById = async (req, res) => {
         const invoice = await Invoice.findById(id).populate('user', 'firstName lastName email contact address');
         // const user = await User.findById(invoice.user);
         // console.log(user);
-        
+
         if (!invoice) {
             return res.status(404).json({
                 success: false,
@@ -203,10 +203,12 @@ exports.updateInvoice = async (req, res) => {
                     quantity: services.quantity,
                     price: services.price
                 },
-                date: date || new Date()
+                date: date ? new Date(date) : undefined
             },
             { new: true }
         );
+
+        console.log(invoice)
 
         if (!invoice) {
             return res.status(404).json({
@@ -296,39 +298,39 @@ exports.deleteInvoice = async (req, res) => {
 
 exports.downloadInvoice = async (req, res) => {
     try {
-      const invoice = await Invoice.findById(req.params.id)
-      .populate('user', 'firstName lastName email phone address nSiren businessLogo');
-        
-    //   console.log(invoice);
-      if (!invoice) {
-        return res.status(404).json({ success: false, message: 'Facture introuvable' });
-      }
-  
-      await generateInvoicePDF(invoice, res); // stream PDF and await completion
+        const invoice = await Invoice.findById(req.params.id)
+            .populate('user', 'firstName lastName email phone address nSiren businessLogo');
+
+        //   console.log(invoice);
+        if (!invoice) {
+            return res.status(404).json({ success: false, message: 'Facture introuvable' });
+        }
+
+        await generateInvoicePDF(invoice, res); // stream PDF and await completion
     } catch (error) {
-      console.error('Erreur lors du téléchargement de la facture :', error.message);
-      res.status(500).json({ success: false, message: error.message });
+        console.error('Erreur lors du téléchargement de la facture :', error.message);
+        res.status(500).json({ success: false, message: error.message });
     }
-  };
+};
 
 exports.paidUnpaid = async (req, res) => {
     try {
         const invoiceId = req.params.id;
-        
+
         // Find the invoice
         const invoice = await Invoice.findById(invoiceId);
-        
+
         if (!invoice) {
             return res.status(404).json({ message: 'La facture n\'a pas été trouvée' });
         }
 
         // Toggle the status
         invoice.status = invoice.status === 'PAID' ? 'UNPAID' : 'PAID';
-        
+
         // Save the updated invoice
         await invoice.save();
-        
-        res.status(200).json({ 
+
+        res.status(200).json({
             message: 'Le statut a été mis à jour avec succès',
             invoice
         });

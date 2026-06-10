@@ -228,8 +228,8 @@ exports.updateIntervention = async (req, res) => {
         );
 
         // Debug logging
-        console.log(`Intervention updated - ID: ${id}`);
-        console.log(`Updated intervention: ${JSON.stringify(intervention)}`);
+        // console.log(`Intervention updated - ID: ${id}`);
+        // console.log(`Updated intervention: ${JSON.stringify(intervention)}`);
 
         res.status(200).json({
             success: true,
